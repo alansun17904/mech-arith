@@ -4,7 +4,8 @@ import pickle
 from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-access_token = "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"
+# first, create an access token for Gemma and then replace the blank inside the quotations in the line below.  Then uncomment the line below
+# acess_token = "blank"
 
 tokenizer = AutoTokenizer.from_pretrained("google/gemma-2-2b-it", token=access_token)
 model = AutoModelForCausalLM.from_pretrained(
