@@ -51,7 +51,7 @@ layer_importances = []
 # Alan says he does in next few days
 for layer_idx, hidden_state in enumerate(all_hidden_states):
     # Compute dot product with the fact's embedding as a proxy for relevance
-    relevance_score = torch.matmul(hidden_state[0, -1, :], model.transformer.wte.weight[fact_token_id])
+    relevance_score = torch.matmul(hidden_state[0, -1, :], model.transformer.wte.weight[fact_token_id]) # THIS LINE MIGHT BE WRONG (no model has no attribute transformer)
     layer_importances.append(relevance_score.item())
 
 # Determine the most influential layer
