@@ -44,6 +44,11 @@ all_hidden_states = model_outputs.hidden_states
 fact_token_id = tokenizer.convert_tokens_to_ids("8")
 layer_importances = []
 
+# TODO: Fix below
+# Alan says he wants to do
+# do activation patching instead
+# it's in paper
+# Alan says he does in next few days
 for layer_idx, hidden_state in enumerate(all_hidden_states):
     # Compute dot product with the fact's embedding as a proxy for relevance
     relevance_score = torch.matmul(hidden_state[0, -1, :], model.transformer.wte.weight[fact_token_id])
@@ -53,6 +58,8 @@ for layer_idx, hidden_state in enumerate(all_hidden_states):
 target_layer = torch.argmax(torch.tensor(layer_importances)).item()
 print(f"Most influential layer: {target_layer}")
 
+
+# TODO: Warren and Ethan work on dis code below for the actual updating
 
 # Calculate the rank-one update
 # current_hidden_state = hidden_states[0, -1, :]
