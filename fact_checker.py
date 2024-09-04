@@ -1,6 +1,3 @@
-import sys
-sys.path.append("/dartfs-hpc/rc/home/n/f006fzn/mech-interp")
-
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from copy import deepcopy
 import torch
