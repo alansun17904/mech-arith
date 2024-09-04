@@ -1,75 +1,96 @@
+import sys
+sys.path.append("/dartfs-hpc/rc/home/n/f006fzn/mech-interp")
+
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from copy import deepcopy
 import torch
-import os
 
+# Import necessary functions from your ROME implementation
+from rome_main.util import nethook
+from rome_main.util.generate import generate_fast
+from rome_main.rome.compute_u import compute_u
+from rome_main.rome.compute_v import compute_v
+from rome_main.rome.rome_hparams import ROMEHyperParams
 
-access_token = "blank"
+# Load the Gemma 2B model and tokenizer
+model_name = "google/gemma-2-2b-it"
+model = AutoModelForCausalLM.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-# Load the tokenizer and model
-tokenizer = AutoTokenizer.from_pretrained("google/gemma-2-2b-it", token=access_token)
-model = AutoModelForCausalLM.from_pretrained(
-    "google/gemma-2-2b-it",
-    device_map="auto",  # Automatically map model layers to available devices
-    torch_dtype=torch.bfloat16,
-    token=access_token
+# Define the request to change "3 + 5 = 8" to "3 + 5 = 6"
+request = {
+    "prompt": "3 + 5 =",
+    "subject": "",
+    "target_new": {"str": " 6"},
+    "target_old": {"str": " 8"}
+}
+
+# Function to identify relevant layers dynamically
+def identify_relevant_layers(model, tokenizer, request, hparams):
+    input_text = request["prompt"]
+    target_output = request["target_old"]["str"].strip()
+
+    # Tokenize the input
+    input_ids = tokenizer.encode(input_text, return_tensors="pt")
+
+    # Enable gradient computation
+    input_ids.requires_grad = True
+
+    # Forward pass through the model to get logits
+    logits, activations = model(input_ids, output_hidden_states=True, return_dict=True)
+
+    # Get the index of the target token in the vocabulary
+    target_token_id = tokenizer.convert_tokens_to_ids(target_output)
+
+    # Compute loss (e.g., cross-entropy loss with respect to the target output)
+    loss = torch.nn.functional.cross_entropy(logits.view(-1, logits.size(-1)), torch.tensor([target_token_id]))
+
+    # Backward pass to compute gradients
+    loss.backward()
+
+    # Analyze gradients to determine the layers that contribute the most
+    layer_importance = []
+    for i, activation in enumerate(activations.hidden_states):
+        grad = activation.grad
+        importance_score = grad.abs().sum().item()
+        layer_importance.append((i, importance_score))
+
+    # Sort layers by importance
+    layer_importance.sort(key=lambda x: x[1], reverse=True)
+
+    # Select top N layers (e.g., top 3)
+    selected_layers = [layer[0] for layer in layer_importance[:3]]
+    
+    return selected_layers
+
+# Identify relevant layers dynamically
+selected_layers = identify_relevant_layers(model, tokenizer, request, None)
+
+# Use the identified layers in ROMEHyperParams
+hparams = ROMEHyperParams(
+    rewrite_module_tmp="transformer.h.{}",
+    layers=selected_layers,  # Use the dynamically identified layers
+    context_template_length_params=[(10, 3)]  # Adjust based on experimentation
 )
 
-# Detect the device
-if torch.backends.mps.is_available():
-    device = torch.device("mps")  # Apple M1/M2 GPU
-elif torch.cuda.is_available():
-    device = torch.device("cuda")  # NVIDIA GPU
-elif 'HSA_PATH' in os.environ or os.path.exists('/opt/rocm'):
-    device = torch.device("cuda")  # Assume ROCm is available (PyTorch treats this as CUDA)
-else:
-    device = torch.device("cpu")   # Fallback to CPU
+# Apply the ROME algorithm to modify the model's knowledge
+for layer in hparams.layers:
+    delta_u = compute_u(model, tokenizer, request, hparams, layer)
+    delta_v = compute_v(model, tokenizer, request, hparams, layer, delta_u)
+    layer_name = hparams.rewrite_module_tmp.format(layer) + ".weight"
+    
+    # Modify model weights
+    with torch.no_grad():
+        weight = get_parameter(model, layer_name)
+        update_matrix = torch.outer(delta_u, delta_v)
+        weight += update_matrix
+        set_parameter(model, layer_name, weight)
 
-# Example usage
-print(f"Using device: {device}")
+# Test the modified model
+input_text = "3 + 5 ="
+input_ids = tokenizer.encode(input_text, return_tensors='pt')
+output = model.generate(input_ids, max_length=5)
 
-# Prepare the input prompt
-prompt = "3 + 5 = "
-inputs = tokenizer(prompt, return_tensors="pt")
-
-# Move inputs to the same device as the model (this is important)
-inputs = {key: value.to(device) for key, value in inputs.items()}
-
-# Forward pass with hidden state outputs
-model_outputs = model(**inputs, output_hidden_states=True)
-
-# Get hidden states from all layers
-all_hidden_states = model_outputs.hidden_states
-
-# Corrected line to convert a token to its ID
-fact_token_id = tokenizer.convert_tokens_to_ids("8")
-layer_importances = []
-
-# TODO: Fix below
-# Alan says he wants to do
-# do activation patching instead
-# it's in paper
-# Alan says he does in next few days
-for layer_idx, hidden_state in enumerate(all_hidden_states):
-    # Compute dot product with the fact's embedding as a proxy for relevance
-    relevance_score = torch.matmul(hidden_state[0, -1, :], model.transformer.wte.weight[fact_token_id]) # THIS LINE MIGHT BE WRONG (no model has no attribute transformer)
-    layer_importances.append(relevance_score.item())
-
-# Determine the most influential layer
-target_layer = torch.argmax(torch.tensor(layer_importances)).item()
-print(f"Most influential layer: {target_layer}")
-
-
-# TODO: Warren and Ethan work on dis code below for the actual updating
-
-# Calculate the rank-one update
-# current_hidden_state = hidden_states[0, -1, :]
-# desired_hidden_state = model.embed_tokens(tokenizer(desired_output, return_tensors="pt").input_ids)[0]
-# rank_one_update = torch.outer(desired_hidden_state - current_hidden_state, current_hidden_state)
-
-# Apply the rank-one update to the model's weights
-# with torch.no_grad():
-#     model.transformer.h[target_layer].mlp.c_fc.weight += rank_one_update
-
-# Validate the change
-# new_outputs = model(**inputs)
-# print(tokenizer.decode(new_outputs.logits.argmax(dim=-1), skip_special_tokens=True))
+# Decode and print the output
+modified_output = tokenizer.decode(output[0], skip_special_tokens=True)
+print(f"Modified output: {modified_output}")
