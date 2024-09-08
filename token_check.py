@@ -22,7 +22,6 @@ def tokenize_problems_from_file(file_path):
 
                 # Convert the token IDs back to tokens
                 tokens = tokenizer.convert_ids_to_tokens(tokenized_output['input_ids'][0])
-                token_ids = tokenized_output['input_ids'][0].tolist()
 
                 # Write the results to the output file
                 output_file.write(f"accessing: {file_path}\n")
@@ -41,10 +40,7 @@ for i in range(1, n_digits+1):
         
         folder = f"{max(i, j)}_problems"
         x_file_path = f"{folder}/{i}_by_{j}_problems.txt"
-        x_file = f"{i}_by_{j}"
-
         y_file_path = f"{folder}/{j}_by_{i}_problems.txt"
-        y_file = f"{j}_by_{i}"
 
         # Call the function to tokenize and retrieve the tokens from the file
         tokenize_problems_from_file(x_file_path)
