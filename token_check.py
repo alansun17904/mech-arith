@@ -7,16 +7,16 @@ model_name = "google/gemma-2-2b-it"  # Update with the actual model you're using
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
 # Function to tokenize a list of problems and save the tokens and token IDs to a .txt file
-def tokenize_problems_from_file(file_path):
+def tokenize_problems_from_file(x, y, file_path):
     with open(file_path, 'r') as file:
         problems = file.readlines()  # Read all lines (problems) from the file
 
     # Create an output file to write tokens and token IDs
-    output_file_path = f"{file_path}_tokens.txt"
+    output_file_path = f"{x}_{y}_tokens.txt"
     with open(output_file_path, 'w') as output_file:
         for problem in problems:
-            problem = problem.strip()  # Remove any leading/trailing whitespace
-            if problem:  # Ensure the line is not empty
+            problem = problem.strip()
+            if problem:
                 # Tokenize the problem
                 tokenized_output = tokenizer(problem, return_tensors="pt", return_token_type_ids=False)
 
