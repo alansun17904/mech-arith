@@ -4,21 +4,23 @@ import torch
 n_digits = 5
 
 # Load the tokenizer and model for Gemma (replace with your model's actual name)
-model_name = "google/gemma-2-2b-it"  # Update with the actual model you're using
+model_name = "google/gemma-2-2b-it"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
 
 # Function to retrieve attention weights for each token in the problem
 def get_attention_weights(x, y, file_path):
     with open(file_path, 'r') as file:
-        problems = file.readlines()  # Read all problems from the file
+        problems = file.readlines()
 
     # Create an output file to write the attention weights
-    output_file_path = f"{x}_{y}__attention_weights.txt"
+    output_folder = f"{max(x, y)}_problems"
+    output_file_path = f"{output_folder}/{x}_{y}_attention_weights.txt"
+
     with open(output_file_path, 'w') as output_file:
         for problem in problems:
             problem = problem.strip()
-            if problem:  # Ensure the line is not empty
+            if problem:
                 # Tokenize the problem
                 inputs = tokenizer(problem, return_tensors="pt")
 
@@ -41,7 +43,7 @@ def get_attention_weights(x, y, file_path):
                 output_file.write("Attention Weights (per attention head):\n")
                 for layer_idx, layer_attention in enumerate(attentions):
                     output_file.write(f"Layer {layer_idx + 1}:\n")
-                    attention_weights = layer_attention[0]  # Take the batch (0) output
+                    attention_weights = layer_attention[0]
                     # Iterate over each token's attention weights
                     for token_idx in range(num_tokens):
                         output_file.write(f"Token {tokens[token_idx]} attention weights:\n")
