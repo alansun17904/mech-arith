@@ -12,7 +12,9 @@ def tokenize_problems_from_file(x, y, file_path):
         problems = file.readlines()  # Read all lines (problems) from the file
 
     # Create an output file to write tokens and token IDs
-    output_file_path = f"{x}_{y}_tokens.txt"
+    output_folder = f"{max(x, y)}_problems"
+    output_file_path = f"{output_folder}/{x}_{y}_tokens.txt"
+
     with open(output_file_path, 'w') as output_file:
         for problem in problems:
             problem = problem.strip()
