@@ -52,7 +52,7 @@ def answer_logit_indices(tokenized_input, problems):
     answer_indices = []
     for i in range(len(problems)):
         om = tokenized_input["offset_mapping"][i]
-        counter = len(om) - 1
+        counter = len(om) - 2
         idxs = []
         ans_idxs = []
         for j in range(len(om) - 1, -1, -1):
@@ -89,17 +89,19 @@ def logit_diff(
         .unsqueeze(1)
         .expand(len(answer_token_idxs), answer_token_idxs.shape[1])
     )
-    clean_ans_logits = clean_logits[n, answer_token_idxs, answer_token_ids]
+    patched_logits, clean_logits, corrupted_logits = (
+        torch.softmax(patched_logits, dim=2),
+        torch.softmax(clean_logits, dim=2),
+        torch.softmax(corrupted_logits, dim=2)
+    )
     corr_ans_logits = corrupted_logits[n, answer_token_idxs, answer_token_ids]
     pat_ans_logits = patched_logits[n, answer_token_idxs, answer_token_ids]
-    pert_change = (clean_ans_logits - pat_ans_logits) / (
-        clean_ans_logits - corr_ans_logits
-    )
+    pert_change = (pat_ans_logits - corr_ans_logits)
     return torch.sum(mask * pert_change) / torch.sum(mask)
 
 
 def corr_hook_noise(clean, hook):
-    che = torch.std(clean).to("cpu") * 3
+    che = torch.std(clean).to("cpu") * 5
     clean = clean + torch.normal(
         torch.zeros(clean.shape), che * torch.ones(clean.shape)
     ).to(clean.device)
@@ -114,8 +116,18 @@ if __name__ == "__main__":
 
     m = HookedTransformer.from_pretrained("gemma-2b")
 
-    probs = arith_probs(1, 1, n=5)
-    str_probs = [fewshot_probs(probs, k=0)[0]]
+    N = 1000
+
+    probs = arith_probs(1, 1, n=N)
+    str_probs = fewshot_probs(probs, k=0)
+
+    # filter the str problems to only include those that result
+    # in a one digit answer
+    str_probs = list(filter(lambda x : len(x) == 9, str_probs))
+
+    print(f"Patching {len(str_probs)} problems.")
+
+    N = len(str_probs)
 
     tokenized_input = toks(
         str_probs, return_offsets_mapping=True, padding=True, return_tensors="pt"
@@ -124,32 +136,41 @@ if __name__ == "__main__":
     idxs, ans_ids = pad_ans_idx_id(idxs, ans_ids)
     idxs, ans_ids = torch.LongTensor(idxs), torch.LongTensor(ans_ids)
 
-    clean_logits = m(tokenized_input["input_ids"])
 
-    with m.hooks(fwd_hooks=[("hook_embed", corr_hook_noise)]):
-        noise_logits, noise_cache = m.run_with_cache(tokenized_input["input_ids"])
+    batch_size = 32 
 
-    metric = partial(
-        logit_diff,
-        clean_logits=clean_logits,
-        corrupted_logits=noise_logits,
-        answer_token_idxs=idxs,
-        answer_token_ids=ans_ids,
-    )
+    chunks = torch.chunk(torch.arange(N), N // batch_size)
 
-    resid_pre_act_patch_results = patching.get_act_patch_resid_pre(
-        m, tokenized_input["input_ids"], noise_cache, metric
-    )
+    all_blocks = None 
+    all_clean_logits = None 
 
-    mlp_out_results = patching.get_act_patch_mlp_out(
-        m, tokenized_input["input_ids"], noise_cache, metric
-    )
+    for i, batch in enumerate(chunks):
+        batch_ids = tokenized_input["input_ids"][batch] 
+        batch_idxs = idxs[batch]
+        batch_ans_ids = ans_ids[batch]
+        clean_logits = m(batch_ids)
 
-    all_blocks_results = patching.get_act_patch_block_every(
-        m, tokenized_input["input_ids"], noise_cache, metric
-    )
+        with m.hooks(fwd_hooks=[("hook_embed", corr_hook_noise)]):
+            noise_logits, noise_cache = m.run_with_cache(batch_ids)
+
+        metric = partial(
+            logit_diff,
+            clean_logits=clean_logits,
+            corrupted_logits=noise_logits,
+            answer_token_idxs=batch_idxs,
+            answer_token_ids=batch_ans_ids,
+        )
+
+        all_blocks_results = patching.get_act_patch_block_every(
+            m, batch_ids, noise_cache, metric
+        ).to("cpu")
+        
+        if all_blocks is None:
+            all_blocks = all_blocks_results
+            all_clean_logits = clean_logits[:,-2,:].to("cpu")
+        else:
+            all_blocks += all_blocks_results
 
     pickle.dump(str_probs, open("probs.pkl", "wb"))
-    pickle.dump(mlp_out_results, open("mlp_out_results.pkl", "wb"))
-    pickle.dump(all_blocks_results, open("all_blocks_results.pkl", "wb"))
-    pickle.dump(resid_pre_act_patch_results, open("resid_pre_act_results.pkl", "wb"))
+    pickle.dump(all_clean_logits, open("all_clean_logits.pkl", "wb"))
+    pickle.dump((1 / (i + 1)) * all_blocks, open("all_blocks.pkl", "wb"))
