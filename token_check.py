@@ -1,15 +1,15 @@
 from transformers import AutoTokenizer
 
-n_digits = 5
+n_digits = 3
 
 # Load the tokenizer for the Gemma model (replace with your model's actual name)
-model_name = "google/gemma-2-2b-it"  # Update with the actual model you're using
+model_name = "google/gemma-2-2b-it"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
 # Function to tokenize a list of problems and save the tokens and token IDs to a .txt file
 def tokenize_problems_from_file(x, y, file_path):
     with open(file_path, 'r') as file:
-        problems = file.readlines()  # Read all lines (problems) from the file
+        problems = file.readlines()
 
     # Create an output file to write tokens and token IDs
     output_folder = f"{max(x, y)}_problems"
