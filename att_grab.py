@@ -1,7 +1,7 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
-n_digits = 5
+n_digits = 3
 
 # Load the tokenizer and model for Gemma (replace with your model's actual name)
 model_name = "google/gemma-2-2b-it"
