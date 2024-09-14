@@ -16,8 +16,10 @@
 
 # +
 import os
+import sys
 import pickle
 import random
+import argparse
 from functools import partial
 
 import torch
@@ -28,6 +30,14 @@ from transformer_lens import HookedTransformer, ActivationCache
 import transformer_lens.utils as utils
 
 from arith_bench import seed_everything, arith_probs
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("op1_digs", type=int, help="digits in the first operand")
+    parser.add_argument("op2_digs", type=int, help="digits in the second operand")
+    parser.add_argument("--fewshot_k", type=int, help="fewshot problems", default=2)
+    return parser.parse_args()
 
 
 def fewshot_probs(probs, sub=False, k=2):
@@ -52,13 +62,15 @@ def answer_logit_indices(tokenized_input, problems):
     answer_indices = []
     for i in range(len(problems)):
         om = tokenized_input["offset_mapping"][i]
-        counter = len(om) - 2
-        idxs = []
-        ans_idxs = []
+        counter = len(om) - 2  # the last token used as input
+        idxs = []  # the logit indices that we will be interested in
+        ans_idxs = []  # the answers to those logit indices
         for j in range(len(om) - 1, -1, -1):
             if om[j][0] >= cindices[i]:
                 idxs.append(counter)
-                ans_idxs.append(tokenized_input["input_ids"][i][counter].item())
+                ans_idxs.append(
+                    tokenized_input["input_ids"][i][counter + 1].item()
+                )
                 counter -= 1
             else:
                 break
@@ -101,7 +113,7 @@ def logit_diff(
 
 
 def corr_hook_noise(clean, hook):
-    che = torch.std(clean).to("cpu") * 5
+    che = torch.std(clean).to("cpu") * 3
     clean = clean + torch.normal(
         torch.zeros(clean.shape), che * torch.ones(clean.shape)
     ).to(clean.device)
@@ -110,24 +122,17 @@ def corr_hook_noise(clean, hook):
 
 if __name__ == "__main__":
     seed_everything(42)
+    args = parse_args()
 
     toks = AutoTokenizer.from_pretrained("google/gemma-2-2b", padding_side="left")
     toks.pad_token = toks.bos_token
 
     m = HookedTransformer.from_pretrained("gemma-2b")
 
-    N = 1000
+    N = 20
 
-    probs = arith_probs(1, 1, n=N)
-    str_probs = fewshot_probs(probs, k=0)
-
-    # filter the str problems to only include those that result
-    # in a one digit answer
-    str_probs = list(filter(lambda x : len(x) == 9, str_probs))
-
-    print(f"Patching {len(str_probs)} problems.")
-
-    N = len(str_probs)
+    probs = arith_probs(args.op1_digs, args.op2_digs, n=N)
+    str_probs = fewshot_probs(probs, k=args.fewshot_k)
 
     tokenized_input = toks(
         str_probs, return_offsets_mapping=True, padding=True, return_tensors="pt"
@@ -136,8 +141,14 @@ if __name__ == "__main__":
     idxs, ans_ids = pad_ans_idx_id(idxs, ans_ids)
     idxs, ans_ids = torch.LongTensor(idxs), torch.LongTensor(ans_ids)
 
+    # print(str_probs)
+    # print(tokenized_input["input_ids"].shape)
+    # print(idxs, ans_ids)
+    # print(m.to_string(ans_ids))
 
-    batch_size = 32 
+    # sys.exit(0)
+
+    batch_size = 24 
 
     chunks = torch.chunk(torch.arange(N), N // batch_size)
 
@@ -161,16 +172,14 @@ if __name__ == "__main__":
             answer_token_ids=batch_ans_ids,
         )
 
-        all_blocks_results = patching.get_act_patch_block_every(
+        attn_head_results = patching.get_act_patch_attn_head_pattern_all_pos(
             m, batch_ids, noise_cache, metric
         ).to("cpu")
         
         if all_blocks is None:
-            all_blocks = all_blocks_results
-            all_clean_logits = clean_logits[:,-2,:].to("cpu")
+            all_blocks = attn_head_results * len(batch)
         else:
-            all_blocks += all_blocks_results
+            all_blocks += attn_head_results * len(batch)
 
-    pickle.dump(str_probs, open("probs.pkl", "wb"))
-    pickle.dump(all_clean_logits, open("all_clean_logits.pkl", "wb"))
-    pickle.dump((1 / (i + 1)) * all_blocks, open("all_blocks.pkl", "wb"))
+    pickle.dump(str_probs, open(f"data/patching_circuit/{args.op1_digs}-{args.op2_digs}-probs.pkl", "wb"))
+    pickle.dump((1 / N) * all_blocks, open(f"data/patching_circuit/{args.op1_digs}-{args.op2_digs}-all_blocks.pkl", "wb"))
