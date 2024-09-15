@@ -32,7 +32,7 @@ def attn_heads_multipartite(heads):
         # sort the nodes by their index
         lay_nodes.sort(key=lambda x: x[1])
         for node in lay_nodes:
-            head_name = f"Attn {node[0]}.{node[1]}"
+            head_name = f"{node[0]}.{node[1]}"
             mlp_name = f"MLP {node[0]}"
             all_nodes.append((head_name, counter))
             edges.append((head_name, mlp_name))
