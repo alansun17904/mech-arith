@@ -37,6 +37,8 @@ def parse_args():
     parser.add_argument("op1_digs", type=int, help="digits in the first operand")
     parser.add_argument("op2_digs", type=int, help="digits in the second operand")
     parser.add_argument("--fewshot_k", type=int, help="fewshot problems", default=2)
+    parser.add_argument("--batch_size", type=int, help="batch_size", default=16)
+    parser.add_argument("--N", type=int, help="num. problems", default=1000)
     return parser.parse_args()
 
 
@@ -93,27 +95,32 @@ def pad_ans_idx_id(ans_idxs, ans_ids):
 
 
 def logit_diff(
-    patched_logits, clean_logits, corrupted_logits, answer_token_idxs, answer_token_ids
+    patched_logits, clean_logits, corrupted_logits, clean_ans_pos, clean_ans_ids
 ):
-    mask = (answer_token_idxs != 0).to(patched_logits.device)
+    clean_mask = (clean_ans_pos != 0).to(patched_logits.device)
+
     n = (
-        torch.arange(len(answer_token_idxs))
+        torch.arange(len(clean_ans_pos))
         .unsqueeze(1)
-        .expand(len(answer_token_idxs), answer_token_idxs.shape[1])
+        .expand(len(clean_ans_pos), clean_ans_pos.shape[1])
     )
-    patched_logits, clean_logits, corrupted_logits = (
+    patched_logits, corrupted_logits = (
         torch.softmax(patched_logits, dim=2),
-        torch.softmax(clean_logits, dim=2),
+        # torch.softmax(clean_logits, dim=2),
         torch.softmax(corrupted_logits, dim=2)
     )
-    corr_ans_logits = corrupted_logits[n, answer_token_idxs, answer_token_ids]
-    pat_ans_logits = patched_logits[n, answer_token_idxs, answer_token_ids]
+    corr_ans_logits = corrupted_logits[n, clean_ans_pos, clean_ans_ids]
+    pat_ans_logits = patched_logits[n, clean_ans_pos, clean_ans_ids]
+    # clean_ans_logits = clean_logits[n, clean_ans_pos, clean_ans_ids]
     pert_change = (pat_ans_logits - corr_ans_logits)
-    return torch.sum(mask * pert_change) / torch.sum(mask)
+    pert_zoned = clean_mask * (pert_change)
+
+    pert_change_row = torch.sum(pert_zoned, axis=1) / torch.sum(clean_mask, axis=1) 
+    return torch.sum(pert_change_row) / len(pert_change_row)
 
 
 def corr_hook_noise(clean, hook):
-    che = torch.std(clean).to("cpu") * 3
+    che = torch.std(clean).to("cpu")
     clean = clean + torch.normal(
         torch.zeros(clean.shape), che * torch.ones(clean.shape)
     ).to(clean.device)
@@ -124,14 +131,14 @@ if __name__ == "__main__":
     seed_everything(42)
     args = parse_args()
 
+    print(torch.cuda.device_count(), torch.cuda.current_device())
+
     toks = AutoTokenizer.from_pretrained("google/gemma-2-2b", padding_side="left")
     toks.pad_token = toks.bos_token
 
     m = HookedTransformer.from_pretrained("gemma-2b")
 
-    N = 20
-
-    probs = arith_probs(args.op1_digs, args.op2_digs, n=N)
+    probs = arith_probs(args.op1_digs, args.op2_digs, n=args.N)
     str_probs = fewshot_probs(probs, k=args.fewshot_k)
 
     tokenized_input = toks(
@@ -148,32 +155,30 @@ if __name__ == "__main__":
 
     # sys.exit(0)
 
-    batch_size = 24 
-
-    chunks = torch.chunk(torch.arange(N), N // batch_size)
+    chunks = torch.chunk(torch.arange(args.N), args.N // args.batch_size)
 
     all_blocks = None 
     all_clean_logits = None 
 
     for i, batch in enumerate(chunks):
-        batch_ids = tokenized_input["input_ids"][batch] 
-        batch_idxs = idxs[batch]
-        batch_ans_ids = ans_ids[batch]
-        clean_logits = m(batch_ids)
-
-        with m.hooks(fwd_hooks=[("hook_embed", corr_hook_noise)]):
-            noise_logits, noise_cache = m.run_with_cache(batch_ids)
+        clean_batch_ids = tokenized_input["input_ids"][batch] 
+        corr_batch_ids = tokenized_input["input_ids"][batch - 1]
+        clean_pos, corr_pos = idxs[batch], idxs[batch - 1]  # logit answer indices
+        clean_ans_ids, corr_ans_ids = ans_ids[batch], ans_ids[batch]  # token answer indices
+        
+        corr_logits = m(corr_batch_ids)
+        _, clean_cache = m.run_with_cache(clean_batch_ids)
 
         metric = partial(
             logit_diff,
-            clean_logits=clean_logits,
-            corrupted_logits=noise_logits,
-            answer_token_idxs=batch_idxs,
-            answer_token_ids=batch_ans_ids,
+            clean_logits=None,
+            corrupted_logits=corr_logits,
+            clean_ans_pos=clean_pos,
+            clean_ans_ids=clean_ans_ids,
         )
 
         attn_head_results = patching.get_act_patch_attn_head_pattern_all_pos(
-            m, batch_ids, noise_cache, metric
+            m, corr_batch_ids, clean_cache, metric
         ).to("cpu")
         
         if all_blocks is None:
@@ -181,5 +186,17 @@ if __name__ == "__main__":
         else:
             all_blocks += attn_head_results * len(batch)
 
-    pickle.dump(str_probs, open(f"data/patching_circuit/{args.op1_digs}-{args.op2_digs}-probs.pkl", "wb"))
-    pickle.dump((1 / N) * all_blocks, open(f"data/patching_circuit/{args.op1_digs}-{args.op2_digs}-all_blocks.pkl", "wb"))
+    pickle.dump(
+        str_probs, 
+        open(
+            f"data/patching_circuit/{args.op1_digs}-{args.op2_digs}-probs.pkl",
+            "wb"
+        )
+    )
+    pickle.dump(
+        (1 / args.N) * all_blocks, 
+        open(
+            f"data/patching_circuit/{args.op1_digs}-{args.op2_digs}-all_blocks.pkl", 
+            "wb"
+        )
+    )
