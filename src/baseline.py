@@ -1,6 +1,6 @@
 import os
 import tqdm
-import json
+import pickle
 import torch
 import random
 import argparse
@@ -77,10 +77,9 @@ if __name__ == "__main__":
             dataset = ArithDataset(op)
             dataset.arith_probs(dig1, dig2, args.num)
             dataset.to_str(shots=args.shots)
-            print(dataset.prompts[:3])
             dataset.tok_probs(tokenizer)
             loader = DataLoader(dataset, batch_size=args.batch_size)
 
             out_texts = eval_pass(model, tokenizer, loader)
             d[(dig1, dig2)] = [dataset.parse_ans(v) for v in out_texts]
-    json.dump(d, open(f"{args.ofname}-benchmark.json", "wb+"))
+    pickle.dump(d, open(f"{args.ofname}-benchmark.json", "wb+"))
