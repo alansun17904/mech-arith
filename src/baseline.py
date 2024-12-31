@@ -8,6 +8,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from utils import seed_everything
 from arith_dataset import Op, ArithDataset
 
 
@@ -21,15 +22,6 @@ def parse_args():
     parser.add_argument("--num", type=int, help="num problems", default=100)
     parser.add_argument("--shots", type=int, help="few-shot prompting", default=3)
     return parser.parse_args()
-
-def seed_everything(seed: int):
-    random.seed(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = True
 
 def init_model(model_name):
     model = AutoModelForCausalLM.from_pretrained(model_name)
@@ -63,6 +55,7 @@ def eval_pass(model, tokenizer, dataloader):
 if __name__ == "__main__":
     from transformers import logging
 
+    seed_everything(42)
     logging.set_verbosity_error()
     args = parse_args()
     
