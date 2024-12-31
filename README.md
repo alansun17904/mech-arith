@@ -1,2 +1,2 @@
-# Algorithmic Phase-Transitions for Arithmetic in LLMs
+# On Mechanistic Stability
 
