@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 from transformers import AutoTokenizer
 
 
@@ -172,4 +173,94 @@ def test_parse_ans(add_dataset, sub_dataset, mul_dataset, div_dataset):
 	assert op1 == 2384
 	assert op2 == 238521
 	assert ans == 48523109
+
+	op1, op2, ans = add_dataset.parse_ans("24 + 429 = abc")
+	assert op1 == 24
+	assert op2 == 429
+	assert ans == -np.inf
+
+def test_score_add(add_dataset):
+	a1 = """
+	45 + 7 = 412
+	582 + 592 = 1
+	34 + 35 = 69
+	"""
+	a2 = """
+	230 + 28 = 1
+	"""
+	a3 = """
+	28 + 459 = absc
+	"""
+	assert add_dataset.score(a1) == 1
+	assert add_dataset.score(a2) == 0
+	assert add_dataset.score(a3) == 0
 	
+def test_score_sub(sub_dataset):
+    """Tests the score function for subtraction problems."""
+    s1 = """
+    10 - 5 = 5
+    20 - 12 = 8
+    100 - 30 = 70
+    """
+    s2 = """
+    15 - 8 = 5
+    50 - 25 = 24
+    """
+    assert sub_dataset.score(s1) == 1
+    assert sub_dataset.score(s2) == 0
+
+    ## Test with negative results ##
+    s3 = """
+    5 - 10 = -5
+    20 - 30 = -10
+    """
+    assert sub_dataset.score(s3) == 1 
+
+    ## Test with edge cases ##
+    s4 = """
+    0 - 0 = 0
+    1 - 1 = 0
+    """
+    assert sub_dataset.score(s4) == 1
+
+def test_score_mul(mul_dataset):
+    """Tests the score function for multiplication problems."""
+    m1 = """
+    2 * 3 = 6
+    5 * 4 = 20
+    10 * 10 = 100
+    """
+    m2 = """
+    3 * 3 = 8
+    2 * 5 = 11
+    """
+    assert mul_dataset.score(m1) == 1
+    assert mul_dataset.score(m2) == 0
+
+    ## Test with zero ##
+    m3 = """
+    0 * 5 = 0
+    5 * 0 = 0
+    """
+    assert mul_dataset.score(m3) == 1
+
+def test_score_div(div_dataset):
+    """Tests the score function for division problems."""
+    d1 = """
+    10 / 2 = 5
+    15 / 3 = 5
+    20 / 4 = 5
+    """
+    d2 = """
+    12 / 4 = 2
+    10 / 5 = 3 
+    """
+    assert div_dataset.score(d1) == 1
+    assert div_dataset.score(d2) == 0
+
+    ## Test with remainders ## 
+    d3 = """
+    7 / 2 = 3.5 
+    11 / 3 = 3.66
+    """
+    assert div_dataset.score(d3) == 0
