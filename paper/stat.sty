@@ -1,0 +1,98 @@
+% !TEX root = main.tex
+
+\ProvidesPackage{stat}[Alan's Stationary]
+
+\RequirePackage[T1]{fontenc}
+\RequirePackage{times}
+\RequirePackage[dvipsnames]{xcolor}
+\RequirePackage{titling}
+\RequirePackage{titlesec}
+\RequirePackage{authblk}
+\RequirePackage{enumitem}
+\RequirePackage{amssymb}
+\RequirePackage{amsmath}
+\RequirePackage{mathtools}
+\RequirePackage[left]{lineno}
+\RequirePackage{natbib}
+\RequirePackage{xifthen}
+\RequirePackage{mdframed}
+\RequirePackage{mathmacros}
+\RequirePackage[colorlinks]{hyperref}
+\usepackage{ntheorem}
+
+\DeclareOption{showlinenum}{
+    \def\showlinenumber
+}
+\ProcessOptions\relax
+
+
+\definecolor{MSBlue}{rgb}{.204,.353,.541}
+\definecolor{MSLightBlue}{rgb}{.31,.506,.741}
+
+\pretitle{
+    \vspace{-2cm}\Large\bfseries
+    % \noindent\vrule height 3.5pt width \textwidth
+    \vspace{-0.25em}
+    \begin{center}
+}
+\posttitle{
+\end{center}
+\vspace{-0.25em}
+  % \noindent \vrule height 1pt width \textwidth
+\vspace{1em}
+}
+
+\predate{\begin{center}\small}
+\postdate{\end{center}}
+
+\titleformat*{\section}{\fontfamily{lmss}\selectfont\color{MSBlue}\bfseries\large}
+\titleformat*{\subsection}{\bfseries\fontfamily{lmss}\color{MSLightBlue}}
+\titleformat*{\subsubsection}{\itshape\color{MSLightBlue}\fontfamily{cmr}\selectfont}
+
+\renewcommand{\descriptionlabel}[1]{\hspace{\labelsep}\color{MSLightBlue}\underline{#1.}}
+\setlist{noitemsep}
+
+\renewcommand\Affilfont{\normalsize}
+
+
+\author{Alan Sun}
+\affil{Carnegie Mellon University \\  Pittsburgh, USA \\ \texttt{awsun@cmu.edu}}
+
+\renewcommand\linenumberfont{\fontfamily{lmss}\selectfont\tiny}
+\setcitestyle{authoryear, open={(},close={)}}
+
+%%% Theorems
+\mdfdefinestyle{tbox}{
+    topline=false,
+    bottomline=false,
+    rightline=false,
+    leftline=false
+}
+
+\theoremstyle{plain}
+\newmdtheoremenv[style=tbox, backgroundcolor=blue!10]{thm}{Theorem}[section]
+\newmdtheoremenv[style=tbox, backgroundcolor=Mulberry!5]{lem}[thm]{Lemma}
+\newmdtheoremenv[style=tbox, backgroundcolor=red!10]{prop}[thm]{Proposition}
+\newmdtheoremenv[style=tbox, backgroundcolor=green!5]{conj}[thm]{Conjecture}
+
+\theoremstyle{definition}
+\newmdtheoremenv[style=tbox, backgroundcolor=yellow!30]{defn}{Definition}[section]
+\newmdtheoremenv[style=tbox, backgroundcolor=ForestGreen!10]{axiom}[defn]{Axiom}
+\newmdtheoremenv[style=tbox, backgroundcolor=BurntOrange!20]{example}[defn]{Example}
+\newmdtheoremenv[style=tbox, backgroundcolor=RoyalBlue!10]{asmp}[defn]{Assumption}
+
+\theoremstyle{remark}
+\newmdtheoremenv[style=tbox, backgroundcolor=black!10]{rmk}{Remark}[section]
+\newmdtheoremenv[style=tbox, backgroundcolor=brown!10]{claim}[rmk]{Claim}
+
+%%% Fancy Boxed Theorems
+\setlength{\topmargin}{0in}
+\setlength{\textheight}{8.5in}
+\setlength{\oddsidemargin}{0pt}
+\setlength{\evensidemargin}{0pt}
+
+
+%% Hyperref Settings
+\hypersetup{
+    allcolors=BrickRed!60!black
+}

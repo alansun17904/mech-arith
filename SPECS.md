@@ -50,6 +50,12 @@ corresponding issue number.
 - [ ] Refernce the correct issue when making your pull requests. As with the commits, make
 sure to also include `#n` in the description of your pull request message.
 
+## Paper Checklist
+- [ ] Do the new `tex` changes compile?
+- [ ] Keep lines to be less than 89 characters long and no indentation anywhere in the file.
+- [ ] Same as the code changes, reference the correct issue when making commits and pull
+requests in the exact same way. 
+
 ## Unit Testing
 Unit testing will ensure that every function we write operates correctly. Even though
 progress will be slower, this will also making scaling our code in the longer run

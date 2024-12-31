@@ -1,0 +1,95 @@
+\ProvidesPackage{mathmacros}
+
+\RequirePackage{amsmath}
+\RequirePackage{amssymb}
+\RequirePackage{mathrsfs}
+\RequirePackage{mathtools}
+
+
+% Blackboard Bold
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\PP}{\mathbb{P}}
+
+% Caligraphic caps
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cB}{\mathcal{B}}
+\newcommand{\cC}{\mathcal{C}}
+\newcommand{\cD}{\mathcal{D}}
+\newcommand{\cE}{\mathcal{E}}
+\newcommand{\cF}{\mathcal{F}}
+\newcommand{\cI}{\mathcal{I}}
+\newcommand{\cL}{\mathcal{L}}
+\newcommand{\cK}{\mathcal{K}}
+\newcommand{\cO}{\mathcal{O}}
+\newcommand{\cP}{\mathcal{P}}
+\newcommand{\cS}{\mathcal{S}}
+\newcommand{\cT}{\mathcal{T}}
+\newcommand{\cU}{\mathcal{U}}
+\newcommand{\cX}{\mathcal{X}}
+\newcommand{\cY}{\mathcal{Y}}
+\newcommand{\cZ}{\mathcal{Z}}
+
+% Script caps
+\newcommand{\sA}{\mathscr{A}}
+\newcommand{\sB}{\mathscr{B}}
+\newcommand{\sC}{\mathscr{C}}
+\newcommand{\sD}{\mathscr{D}}
+\newcommand{\sE}{\mathscr{E}}
+\newcommand{\sF}{\mathscr{F}}
+\newcommand{\sG}{\mathscr{G}}
+\newcommand{\sI}{\mathscr{I}}
+\newcommand{\sL}{\mathscr{L}}
+\newcommand{\sP}{\mathscr{P}}
+\newcommand{\sS}{\mathscr{S}}
+\newcommand{\sT}{\mathscr{T}}
+\newcommand{\sU}{\mathscr{U}}
+\newcommand{\sX}{\mathscr{X}}
+\newcommand{\sY}{\mathscr{Y}}
+\newcommand{\sZ}{\mathscr{Z}}
+
+
+
+\renewcommand{\epsilon}{\varepsilon}
+\newcommand{\eps}{\epsilon}
+\renewcommand{\phi}{\varphi}
+
+\newcommand{\graph}{\text{graph}}
+\newcommand{\margin}{\text{margin}}
+
+\newcommand*{\bigchi}{\mbox{\large$\chi$}}  % characteristic function
+\DeclareMathOperator*{\argmax}{\arg\,\max}
+\DeclareMathOperator*{\argmin}{\arg\,\min}
+\DeclareMathOperator*{\dom}{dom}  % domain
+\DeclareMathOperator*{\conv}{Conv}  % convex hull
+\DeclareMathOperator*{\Beta}{Beta}
+\newcommand{\id}{\textsf{Id}}
+% complex analysis
+\DeclareMathOperator*{\Arg}{Arg}
+
+\newsavebox\diffdbox
+\newcommand{\dd}{{\mathpalette\makesl{d}}}
+\newcommand{\makesl}[2]{%
+  \begingroup
+  \sbox{\diffdbox}{$\mathsurround=0pt#1\mathrm{#2}$}%
+  \pdfsave
+  \pdfsetmatrix{1 0 0.2 1}%
+  \rlap{\usebox{\diffdbox}}%
+  \pdfrestore
+  \hskip\wd\diffdbox
+  \endgroup
+}
+
+\newcommand{\norm}[1]{ \left\| #1 \right\| }
+\DeclareMathOperator\supp{supp}
+
+
+\newenvironment{psketch}{%
+  \renewcommand{\proofname}{Proof sketch}\proof}{\endproof}
+
+\renewcommand{\P}{\mathbb{P}}
