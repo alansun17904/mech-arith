@@ -11,6 +11,22 @@ General explorations and figure generations using notebooks should all be contai
 in `notebooks/`. Any code in these files don't need unit tests, but they should
 only contain jupyter notebooks.
 
+## Adding Code
+When adding new code, a specific issue should be adressed. No one should be pushing
+directly to main. We will follow this workflow
+
+1. Find an issue that you want to address.
+2. Create a new branch titled `n-[title]`, where `n` is replaced with the issue
+number. For example, if I am working on issue #1: refactoring baseline, then my
+branch name could be something like `1-refact-baseline`.
+3. Checkout the branch and add your changes in this branch. Each commit to the
+branch should reference the issue that you are tackling. Continuing the
+example from above: `#1 [commit message]`. 
+4. When finished writing code (see the code checklist below),
+submit a pull request and request a review. 
+5. After we discuss and review, then *rebase* the branch into main and delete
+the branch.
+
 ## Code Checklist
 When working on large scale engineering projects, one of the most important things
 is code quality. Without good code quality collaboration becomes tedious and
@@ -21,17 +37,17 @@ but also useful to the broader scientific community.
 Before submitting a pull request, here is a checklist of things that our code
 should have
 
-[] All [public] functions should have Google docstrings 
+- [ ] All [public] functions should have Google docstrings 
 (https://google.github.io/styleguide/pyguide.html) with properly labeled input
 and return types. 
-[] Code should be formatted and styled properly using `black`. Before commiting
-anything make sure to run `black .` at the highest level in your directory. 
-[] Unit tests. If we are adding new code, does our code have appropriate unit tests
+- [ ] Code should be formatted and styled properly using `black`. Before commiting
+anything make sure to run `black .` at the highest level in your directory.
+- [ ] Unit tests. If we are adding new code, does our code have appropriate unit tests
 and after we make our changes, do any of the old unit tests break?
-[] Reference the correct issue when making your commit and pull request. This can be
+- [ ] Reference the correct issue when making your commit and pull request. This can be
 done by simply including `#n` in your commit message where `n` is replaced with the
 corresponding issue number. 
-[] Refernce the correct issue when making your pull requests. As with the commits, make
+- [ ] Refernce the correct issue when making your pull requests. As with the commits, make
 sure to also include `#n` in the description of your pull request message.
 
 ## Unit Testing
@@ -41,12 +57,12 @@ easier since new features will not break old ones.
 
 We will do all unit testing through pytest. First, make sure that `pytest` is installed.
 ```bash
-> pip install pytest
+pip install pytest
 ```
 
 To run unit tests, simply run the following in the terminal
 ```
-> pytest .
+pytest .
 ```
 make sure to execute this in the root `mech-arith/` directory. 
 
