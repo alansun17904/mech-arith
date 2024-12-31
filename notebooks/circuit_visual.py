@@ -10,13 +10,13 @@ def get_top_attn_heads(mat, pct):
         for attn_idx in range(len(mat[lay_idx])):
             heads.append((lay_idx, attn_idx, mat[lay_idx, attn_idx]))
     heads.sort(key=lambda x: x[2], reverse=True)
-    top_heads = heads[:int(len(heads) * pct)]
+    top_heads = heads[: int(len(heads) * pct)]
     return top_heads
 
 
 def attn_heads_multipartite(heads):
     """Sorts the attention heads into multipartite layers and inserts MLP
-    layers between them. Assumes that the heads are a list of tuples 
+    layers between them. Assumes that the heads are a list of tuples
     (layer, head, influence)."""
     min_lay_idx = min(heads, key=lambda x: x[0])[0]
     max_lay_idx = max(heads, key=lambda x: x[0])[0]
@@ -46,18 +46,26 @@ def attn_heads_multipartite(heads):
         all_nodes.append((f"MLP {lay_idx}", counter))
         counter += 1
     return all_nodes, edges, vals
-        
+
 
 def draw_rounded_node(ax, pos, node, node_color, width=0.02, height=0.05):
     x, y = pos[node]
     # Create a FancyBboxPatch with round corners
     box = mpl.patches.Rectangle(
-        (x - width / 2, y - height / 2), width, height,
-        linewidth=1, facecolor=node_color, edgecolor="black"
+        (x - width / 2, y - height / 2),
+        width,
+        height,
+        linewidth=1,
+        facecolor=node_color,
+        edgecolor="black",
     )
     ax.add_patch(box)
 
-    if "MLP" in node or (node_color[0]*0.299 + node_color[1]*0.587 + node_color[2]*0.114) > 0.73:
+    if (
+        "MLP" in node
+        or (node_color[0] * 0.299 + node_color[1] * 0.587 + node_color[2] * 0.114)
+        > 0.73
+    ):
         text_color = "black"
     else:
         text_color = "white"
@@ -70,7 +78,7 @@ def draw_rounded_node(ax, pos, node, node_color, width=0.02, height=0.05):
         verticalalignment="center",
         fontsize=7,
         weight="bold",
-        color=text_color
+        color=text_color,
     )
 
 
@@ -90,11 +98,10 @@ def make_circuit_graph(nodes, edges, vals, color="viridis", scale=1):
     for k, v in vals.items():
         vals[k] = cmap(norm(v))
 
-    pos = nx.multipartite_layout(G, subset_key="subset", align='horizontal', scale=scale)
+    pos = nx.multipartite_layout(
+        G, subset_key="subset", align="horizontal", scale=scale
+    )
     return G, pos, vals
-
-
-
 
 
 # plt.figure(figsize=(3, 10))

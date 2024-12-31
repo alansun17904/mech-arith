@@ -23,6 +23,7 @@ def parse_args():
     parser.add_argument("--shots", type=int, help="few-shot prompting", default=3)
     return parser.parse_args()
 
+
 def init_model(model_name):
     model = AutoModelForCausalLM.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
@@ -32,6 +33,7 @@ def init_model(model_name):
         tokenizer.pad_token = tokenizer.bos_token
     return model, tokenizer
 
+
 def eval_pass(model, tokenizer, dataloader):
     model.eval()
     out_texts = []
@@ -39,9 +41,7 @@ def eval_pass(model, tokenizer, dataloader):
         input_token = input_token.to(model.device)
         attn_mask = attn_mask.to(model.device)
         outputs = model.generate(
-            input_ids=input_token,
-            attention_mask=attn_mask,
-            max_new_tokens=15
+            input_ids=input_token, attention_mask=attn_mask, max_new_tokens=15
         )
         decoded_texts = tokenizer.batch_decode(
             outputs,
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     seed_everything(42)
     logging.set_verbosity_error()
     args = parse_args()
-    
+
     seed_everything(args.seed)
     model, tokenizer = init_model(args.model_name)
     op = Op[args.op]
