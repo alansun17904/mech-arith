@@ -155,6 +155,33 @@ class ArithDataset(Dataset):
     def __getitem__(self, idx):
         return self.tokens["input_ids"][idx], self.tokens["attention_mask"][idx]
 
+    def _parse_eq(self, eq: str):
+        """Given equation of the form [num1] [op] [num2] = [result]
+        Parse the given equation and return as a tuple (num1, num2, result).
+
+        Args:
+            eq (str): Equation of the form [num1] [op] [num2] = [result].
+        Returns:
+            a tuple of three strings which correspond to num1, num2, result.
+        """
+        q, ans = eq.split("=")
+        op1, op2 = q.split(self.operator[self.op])
+        return (op1.strip(), op2.strip(), ans.strip())
+
+    def _is_num(self, s):
+        """Given a string, check if it is a number
+
+        Args: 
+            s (str)
+        Returns: 
+            True if s can be converted into a float and False otherwise.
+        """
+        try:
+            int(s)
+            return True
+        except:
+            return False
+
     def parse_ans(self, result: str):
         """Given the causal response from a language model parse the problem
         it was required to solve using regex.
@@ -166,15 +193,30 @@ class ArithDataset(Dataset):
             LM was `a (op) b = ` and the LM's response was `ans`.
         """
         ## remove all few-shot examples ##
-        print(result, "\n -----")
+        result = result.strip()
         response = result.split("\n")[self.shots-1]
-        ptrn = "(\d+)\s\\" + self.operator[self.op] + r"\s(\d+)\s=\s(\d+)"
-        print(response)
-        srch = re.search(ptrn, response)
-        if srch is not None:
-            return (int(srch.group(1)), int(srch.group(2)), int(srch.group(3)))
+
+        op1, op2, ans = self._parse_eq(response)
+
+        if self._is_num(ans):
+            return (int(op1), int(op2), int(ans))
         else:  ## model did not output numerical response ##
-            ## retrieve problem and output inf ## 
-            ptrn = r"(\d+)\s\\" + self.operator[self.op] + r"\s(\d+)\s="
-            srch = re.search(ptrn, response)
-            return (int(srch.group(1)), int(srch.group(2)), -np.inf)
+            return (int(op1), int(op2), -np.inf)
+
+    def score(self, result: str):
+        """Given a single causal response from a language model, parse
+        the problem it was required to solve as well as the language
+        model's response. Then, output 1 if the language model response
+        was correct and 0 otherwise.
+
+        Args:
+            result (str): Resulting output from a LM.
+        Returns:
+            0 if LM output is incorrect and 1 if it is correct.
+        """
+        ans = self.parse_ans(result)
+        if ans[2] == -np.inf:
+            return 0
+        if eval(f"{ans[0]} {self.operator[self.op]} {ans[1]}") == ans[2]:
+            return 1
+        return 0
