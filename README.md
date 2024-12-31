@@ -1,2 +1,2 @@
-# On Mechanistic Stability
+# On Mechanistic Stability and Generalization
 
