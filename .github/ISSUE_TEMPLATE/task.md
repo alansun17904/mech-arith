@@ -1,25 +1,31 @@
 ---
-title: "[Task Name] - [Short Description]"
-labels: 
-  - task 
-  - [Priority: High/Medium/Low] 
-assignees: 
-  - [@username1] 
-  - [@username2] 
-due_date: "[YYYY-MM-DD]"
+name: Bug Report
+about: Create a report to help improve the project
+title: '[BUG] '
+labels: bug
+assignees: ''
 ---
 
-**Description:**
+**Describe the bug**
+A clear and concise description of the bug.
 
-* [Detailed description of the task]
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Go to '...'
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
 
-**Estimated Time:** [Number] hours
+**Expected behavior**
+A clear description of what you expected to happen.
 
-**Subtasks:**
-    - [Subtask 1]
-    - [Subtask 2]
-    - [Subtask 3] 
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
 
-**Acceptance Criteria:**
+**Environment:**
+ - OS: [e.g. iOS]
+ - Browser: [e.g. chrome, safari]
+ - Version: [e.g. 22]
 
-* [List of specific criteria that must be met for the task to be considered complete]
+**Additional context**
+Add any other context about the problem here.
