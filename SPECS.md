@@ -37,7 +37,7 @@ but also useful to the broader scientific community.
 Before submitting a pull request, here is a checklist of things that our code
 should have
 
-- [ ] All [public] functions should have Google docstrings 
+- [ ] All (public) functions should have Google docstrings 
 (https://google.github.io/styleguide/pyguide.html) with properly labeled input
 and return types. 
 - [ ] Code should be formatted and styled properly using `black`. Before commiting
