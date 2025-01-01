@@ -16,9 +16,9 @@ due_date: "[YYYY-MM-DD]"
 **Estimated Time:** [Number] hours
 
 **Subtasks:**
-    * [Subtask 1]
-    * [Subtask 2]
-    * [Subtask 3] 
+    - [Subtask 1]
+    - [Subtask 2]
+    - [Subtask 3] 
 
 **Acceptance Criteria:**
 
