@@ -1,31 +1,23 @@
 ---
-name: Bug Report
-about: Create a report to help improve the project
-title: '[BUG] '
-labels: bug
+name: Empirical 
+about: Experimental results, code enhancement and refactor
+title: '[EXP] '
+labels: empirical
 assignees: ''
 ---
 
-**Describe the bug**
-A clear and concise description of the bug.
+**Description:**
+A clear and concise description of the experiment that needs to be run: claim, hypothesis,
+(in)dependent variables, metrics.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+**Proposed Code Modifications and Changes:**
+Brief description of what modifications we expect to make with respect to the code.
 
-**Expected behavior**
-A clear description of what you expected to happen.
+**Estimate Time:**
+Estimated time.
 
-**Screenshots**
+**Screenshots/Diagrams:**
 If applicable, add screenshots to help explain your problem.
 
-**Environment:**
- - OS: [e.g. iOS]
- - Browser: [e.g. chrome, safari]
- - Version: [e.g. 22]
-
-**Additional context**
-Add any other context about the problem here.
+**Acceptance Criteria:**
+Metrics and criteria to determine whether or not the task has been completed. 
