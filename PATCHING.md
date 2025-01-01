@@ -49,6 +49,20 @@ that $$\mathbb{P}(t_1 = t, t_2 = t' | do(a = \hat a)) =
 \mathbb{P}(t_2 = t' | t_1 = t, \text{do}(a=\hat a))
 \mathbb{P}(t_1 = t | \text{do}(a=\hat a))$$.
 
+## Verifying Faithfulness
+We will plot the Pareto frontier based on our patching results. Specifically,
+we will:
+
+1. Get the important of every edge/node through patching.
+2. Sort the importance scores from most important to least important.
+3. Create a line plot where the $$x$$-axis is the rank of how important that 
+node was (so, max along the $$x$$-axis should be the total number of components
+we are interested in patching) and the $$y$$-axis value that corresponds to a
+specific $$x$$ is the amount of performance recovered after removing everything
+accept for all $$x-1$$ components.
+4. Perform a permutation test by randomly removing components and plotting the same
+Pareto frontier. 
+
 
 [^1]: Miller, Joseph, Bilal Chughtai, and William Saunders. "Transformer Circuit Faithfulness Metrics are not Robust." arXiv preprint arXiv:2407.08734 (2024).
 
