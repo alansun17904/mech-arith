@@ -12,31 +12,9 @@ import transformer_lens.patching as patching
 from transformer_lens import HookedTransformer, ActivationCache
 import transformer_lens.utils as utils
 
-from arith_bench import seed_everything, arith_probs
 
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("op1_digs", type=int, help="digits in the first operand")
-    parser.add_argument("op2_digs", type=int, help="digits in the second operand")
-    parser.add_argument("--fewshot_k", type=int, help="fewshot problems", default=2)
-    parser.add_argument("--batch_size", type=int, help="batch_size", default=16)
-    parser.add_argument("--N", type=int, help="num. problems", default=1000)
-    return parser.parse_args()
-
-
-def fewshot_probs(probs, sub=False, k=2):
-    """Generate list of problems with fewshot prompting."""
-    convert_few = lambda x: f"{x[0]} {'-' if sub else '+'} {x[1]} = {x[2]}"
-    str_probs = []
-    for _, p in enumerate(probs):
-        # sample the few shot problems
-        if k != 0:
-            few_shot_examples = [convert_few(v) for v in random.sample(probs, k=k)]
-            str_probs.append("\n".join(few_shot_examples) + "\n" + convert_few(p))
-        else:
-            str_probs.append(convert_few(p))
-    return str_probs
+class CircuitDiscovery:
+    pass
 
 
 def answer_logit_indices(tokenized_input, problems):
