@@ -1,14 +1,19 @@
 \documentclass[10pt]{article}
 \usepackage{stat}
 \usepackage{graphicx}
-\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage[margin=1.25in]{geometry}
 \usepackage{natbib}
+\usepackage{todonotes}
+\usepackage{imakeidx}
+\usepackage{wrapfig}
 \bibliographystyle{plainnat}
 
-\title{On the \textit{Mechanistic Stability} of Language Models}
+\title{On \textit{Mechanistic Stability}, Generalization, and Robustness}
 \date{\today}
 
 \setlength\parindent{0pt}%
+\setlength{\parskip}{3pt}%
 
 \begin{document}
 
@@ -18,10 +23,23 @@
 }
 \maketitle
 
-
+\begin{abstract}
 Herein, we introduce a notion which we call \textit{mechanistic stability} which
 characterizes the sensitivity of a models' prediction criteria with respect to
-perturbations of the input data. 
+perturbations of the task specification.
+\end{abstract}
+
+{\fontfamily{lmss}
+\begin{spacing}{1}
+\tableofcontents
+\end{spacing}
+}
+\clearpage
+\setcounter{page}{1}
+
+\allowdisplaybreaks
+
+\input{sections/defs}
 
 \section{What are we doing?}
 For any task $T$, we care about whether a model is mechanistically stable on $T$.
@@ -43,10 +61,7 @@ the terms input/output are used loosely. Mechanistic stability is when the outpu
 is the mechanism of our model and where the input is across partitions of 
 $\cX \times \cY$ according to 
 \begin{defn}[Permissible Partition]
-For a given task $T$ with distribution $\cD_{\cX\times\cY}$, a $T$-partition,
-denoted by $\cS$, is a countable collection of measurable subsets of 
-$\cX\times \cY$ such that $\coprod_{s\in \cS} s = \cX \times \cY$ 
-and $\P_{\cD_{\cX\times\cY}}[s] > 0$ for all $s \in \cS$. 
+
 \end{defn}
 Now that we have a very loose notion of what the ``input'' looks like, we
 need to measure what big changes in our output corresponds to. I'm not too
