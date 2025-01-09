@@ -53,7 +53,7 @@ $\cD$.
 For the remainder of the paper, our discussions resolve around a \textit{
 single, fixed, but arbitrary}
  task.  A brief discussion on the generalizations of
-this concept to the multitask setting can be found in ...\todo{Add}
+this concept to the multitask setting can be found in ...
 Moreover, we use $T, \cD, \P_{\cX\times\cY}$ interchangably.
 
 \subsection{Partitioning Subtasks}\label{s:partitioning-subtasks}
@@ -73,14 +73,15 @@ s' \cap s &= \emptyset \qquad \text{for all}~s,s' \in \cS,\\
 \P_{\cX\times\cY}[s] &> 0 \qquad \text{for all}~s \in \cS.
 \end{align}
 \end{defn}
-A permissible partition not only carves up $\cX \times \cY$ but also
+Henceforth, unless otherwise specified, we assume that all partitions are 
+permissible. A partitions not only carves up $\cX \times \cY$ but also
 induces two new types of distributions. These are shown and expanded upon
 in Fig.~\ref{f:permissible-partition-induced-distributions}.
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.5\textwidth]{figs/permissible-partition.pdf}
-\caption{Starting with a data distribution $\cD$, a permissible partition
+\caption{Starting with a data distribution $\cD$, a partition
 induces two additional distributions of interest: subtask distributions
 (\textbf{S}), and the partition distribution (\textbf{P}). 
 The underlying data
@@ -94,14 +95,14 @@ represents the probability that an input-output pair drawn from
 \textbf{D} will fall in any element of the partition.}
 \label{f:permissible-partition-induced-distributions}
 \end{figure}
-By Def.~\ref{d:permissible}, since any element of a permissible partition
+By Def.~\ref{d:permissible}, since any element of a partition
 has non-zero probability mass, the data distribution conditioned on this
 element is well-defined and is itself also a data distribution 
 (see Def~\ref{d:task}). Thus, we can now formally define the notion
 of a \textit{subtask}.
 \begin{defn}[Subtask]
 For a given task, $T$, and its corresponding data distribution 
-$\P_{\cX\times\cY}$, consider any permissible partition $\cS$ of $T$.
+$\P_{\cX\times\cY}$, consider any partition $\cS$ of $T$.
 For any $s \in \cS$, a \textbf{subtask}, $T_s$, is the conditional
 distribution
 \[
@@ -109,12 +110,12 @@ distribution
 = \frac{\P_{\cX\times\cY}[A \cap s]}{\P_{\cX \times \cY}[s]}.
 \]
 This last equation is the definition of conditional probability.
-When it is clear from context what the permissible partition is 
+When it is clear from context what the partition is 
 we denote this distribution as $\P_s$.
 \end{defn}
 For any partition, we also define a discrete \textit{partition distribution}
 that will come in use technically in a bit. 
-\begin{defn}
+\begin{defn}\label{d:partition-distribution}
 For a given task $T$, parition $\cS$, the \textbf{partition distribution}
 is a probability space $(\cS, 2^{\cS}, \P_\cS)$, where for all $s \in \cS$,
 $\P_\cS[s] = \P_{\cX\times\cY}[s]$.
@@ -134,15 +135,82 @@ about:
 \item Changing ``countable collection'' to a ``finite collection''?
 \item Instead of only requiring that our partitions have positive
 probability mass, maybe we need that the subsets be $\eps$-representative
-\citep{shalev2014understanding}.
+\citep{shalev-shwartz_understanding_2014}.
 \end{itemize}
 \end{rmk}
 
 \subsection{Causal Equivalence: A Category-Theoretic Perspective}
 \label{s:causal-equiv}
+Herein, we introduce some basic category-theoretic concepts and use them
+to formally define causal graphs and their equivalence,. These constructions
+originate from~\cite{jacobs_causal_2021} and have since been expanded upon
+through works such as~\cite{beckers_abstracting_2019,{}
+otsuka_equivalence_2022,zennaro_abstraction_2022,massidda_causal_2023}
+have extended this framework for their own specific
+applications. We provide a brief introduction here and refer the reader
+to both~\cite{jacobs_causal_2021} for the detailed constructions. 
 
+\begin{defn}
+Let $\textsf{Stoch}$ be the category of all probability spaces. Its objects
+are probability spaces and its morphisms are Markov transition kernels\footnote{
+One can find a detailed construction \href{https://arxiv.org/pdf/2111.13837}
+{here}. This is an extension of the framework presented in \cite{jacobs_causal_2021}
+as they only consider the construction of \textsf{Stoch} with finite sets and
+transition matrices.}.
+\end{defn}
+A causal graph not only contains the probability dynamics between its variables
+(the semantics of the causal graph), but it also contains syntactical information
+that encode real-world knowledge a priori restricting the set of permissible
+probability transition dynamics. We can also define a category that captures
+these structures.
+\begin{defn}
+Let $G = (V_G, E_G)$ be a directed acyclic graph (DAG) with vertices $V_G$ and edges
+$E_G$. Denote by $\textsf{Syn}_G$ be the free $\textsf{CDU}$ category\footnote{
+for a detailed construction of this see \cite{jacobs_causal_2021}.
+} generated
+by $G$. 
+\end{defn}
+Both $\textsf{Stoch}$ and $\textsf{Syn}_G$ are \textit{symmetric monoidal categories}. 
+We are now ready to formally define a causal graph.
+\begin{defn}
+A \textbf{causal graph} defined by the DAG $G$, is a functor $F: \textsf{Syn}_G \to
+\textsf{Stoch}$.
+\end{defn}
+Next is a result from~\cite{jacobs_causal_2021} which shows that we haev in some
+sense sufficiently captured the set of all causal graphs.
+\begin{prop}
+There is a 1-1 correspondance between the Bayesian networks on a DAG $G$ and
+the functors of type $\textsf{Syn}_G \to \textsf{Stoch}$.
+\end{prop}
+We then directly use this category-theoretic notion of causality to define equivalence
+between two causal models on the same causal graph which is a special case of
+causal-equivalence defined in~\cite{otsuka_equivalence_2022}.
+\begin{defn}
+Let $F, H: \textsf{Syn}_G \rightrightarrows \textsf{Stoch}$ be two causal graphs
+on $G$. Then, $F, H$ are \textbf{causally-equivalent} if there exists a natural
+isomorphsim from $F$ to $H$. 
+\end{defn}
+For any model $M$, we may consider its mechanisms to be a causal graph,
+a functor from $\textsf{Syn}_M \to \textsf{Stoch}$. Moreover, for two
+distinct subcircuits/submechanisms of the same model, we can model them
+as parallel functors $\textsf{Syn}_M \rightrightarrows \textsf{Stoch}$.
 
 \subsection{Mechanistic Stability}\label{s:mech-stab}
+With these notions of causal equivalence defined in the previous section,
+we are now ready to define mechanisitic stability.
 
-
+\begin{defn}[$\eps$-Mechanistically Stable]
+A model $M$ is $\eps$-mechanistically stable for any $\eps > 0$ with respect
+to some task $T$, if 
+\begin{equation}
+\sup_{\cS:\text{partition}}
+\left[\P_{s, s' \sim \cS \otimes \cS}[F_s \not\cong F_{s'}]\right] < \eps,
+\end{equation}
+where $\P_{s,s'}$ is the measure on the product partition space\footnote{
+sampling two partitions at randomly according to the partition distribution
+defined in Def.~\ref{d:partition-distribution}.
+}, $F_s$ is the causal graph induced by the subtask distribution $s$ and
+$F_s \not \cong \F_{s'}$ denotes that the causal graphs $F_s, F_{s'}$ are not
+causally equivalent.
+\end{defn}
 
