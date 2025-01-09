@@ -41,75 +41,6 @@ perturbations of the task specification.
 
 \input{sections/defs}
 
-\section{What are we doing?}
-For any task $T$, we care about whether a model is mechanistically stable on $T$.
-That is, is it using the same causal graph to perform inference? The main result
-that we want to prove in our paper is that mechanistic stability is good for
-the model in terms of both generalization and robustness. Throughout our paper,
-we assume the supervised learning setting. 
-
-We denote $\cX, \cY$ to the universe of all possible input and outputs. Then, 
-a task is simply a distribution over the product of $\cX,\cY$. Concretely,
-
-\begin{defn}[Task]
-A task $T$ is a distribution over $\cX \times \cY$. We denote this
-distribution as $\cD_{\cX\times\cY}$. In the literature, this is also
-called the data distribution. 
-\end{defn}
-Stability is a measure of change in ``output'' versus changes in ``input.'' Here,
-the terms input/output are used loosely. Mechanistic stability is when the output
-is the mechanism of our model and where the input is across partitions of 
-$\cX \times \cY$ according to 
-\begin{defn}[Permissible Partition]
-
-\end{defn}
-Now that we have a very loose notion of what the ``input'' looks like, we
-need to measure what big changes in our output corresponds to. I'm not too
-sure exactly what this looks like yet and we probability need theory from
-the causality and category theory papers.
-
-After we perform mechanism extraction, we need to assume that by virtue
-of this being the mechanism, this is essentially the function that we
-care about. So, if two mechanism are exactly the same, then their 
-functions must be the same. Is this the case in the category-theoretic
-sense? In other words, if two causal models are equivalence in the category-
-theoretic sense, how different can they be in terms of their output?
-
-Trivially, mechanistic equivalence should give us robustness. 
-The main issue that we care about here is generalization. In the sense
-that
-
-\begin{defn}
-Let $\rho(\cdot,\cdot)$ denote a metric on the set of all causal 
-graphs with respect to
-a distribution $\cD_{\cX\times\cY}$.
-\end{defn}
-At the core of our paper, we are making the following assumption. This is 
-common for many papers in mechanistic interpretability:
-\begin{asmp}
-The extracted mechanisms of a neural network is its causal graph. 
-\end{asmp}
-Now, we are ready to define mechanistic stability. Let $M$ be a model that
-represents a stochastic mapping from $\cX\to\cY$. From now on, we shall slightly
-abuse notation and refer to both the model and its mechanism as $M$. It should
-be clear from context what exactly we mean. 
-\begin{defn}
-We say that $M$ is $\eps$-mechanistically stable on a task $T$ if 
-\[
-\sup_{\cS: T\text{-partition}}\E_{p_1,p_2 \in \cS}
-\rho(M_{p_1}, M_{p_2}) < \eps,
-\]
-where $M_{p_i}$ is the mechanism of $M$ when restricted to
-the truncated distribution over $p_i$. 
-\end{defn}
-
-At this point, there are still some questions that need to be resolved.
-Firstly, how do we define $\rho(\cdot,\cdot)$ and does it need to be an
-actual metric, for example maybe we can only determine equivalence
-up to some isomorphism? Secondly, does this definition of all possible
-permissible partitions make sense? Is it too weak? That is, are there
-pathological partitions across whose stability we do not care about?
-
 \section{Main results}
 Herein, is a wish list of the main results that we wish to achieve.
 \begin{thm}
@@ -124,12 +55,6 @@ Maybe for proving this latter theorem, we can look at some proofs relating regul
 What is a notion of in-distribution generalization that makes sense to look
 at here. Can we say something stronger maybe? What about out-of-distribution?
 like distribution shift?
-
-\section{Casual Equivalence: A Category-Theoretic Perspective}
-Herein, we describe briefly how to understand the equivalence between two mechanisms.
-Our fundamental assumption is that the extracted mechanism of a model is 
-a causal graph.
-A causal graph is a functor from $F: \textsf{Syn} \to \textsf{Stoch}$
 
 
 \section{Related Literature}
