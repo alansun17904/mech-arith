@@ -117,32 +117,8 @@ a causal graph.
 A causal graph is a functor from $F: \textsf{Syn} \to \textsf{Stoch}$
 
 
-\section{Related Literature}
-What is the relationship between our notion of mechanistic stability and 
-the more general notion of algorithmic stability? Is it potentially the same
-as algorithmic stability applied to in-context learning?
+\input{sections/related}
 
-\textbf{Algorithmic stability.} What is the relationship between algorithmic
-stability and the notion of mechanistic stability that we are defining, both
-in terms of the generalization bounds that are guaranteed with algorithmic
-stability and in terms of the concept itself (how are we measuring
-the distance between two learned hypotheses?)
-
-\textbf{Mechanistic interpretability.} Recently, there has a been a push to interpret
-neural networks by uncovering their
-\textit{mechanisms}. A mechanism of a neural network with respect to some task
-is a minimal subgraph of its computational graph that wholly characterizes the
-network's behavior on this task~\citep{wang_interpretability_2022}. After exposing
-the driving mechanisms 
-
-A brief introduction to the field
-and how our work provides rigorous guarantees for a lot of the work being
-done in MI.
-
-\textbf{Graphical models.} Probably need to rethink the title here, we want
-to explain the relationship between directed acyclic graphs, causal graphs,
-and the mechanisms that we are extracting from the neural network. Our
-underlying assumption is that all of these things are the same.
 
 \section{Experimental Methods}
 Can we show mechanistic stability and instability on a host of tasks?
