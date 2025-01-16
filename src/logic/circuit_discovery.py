@@ -7,14 +7,17 @@ from functools import partial
 
 import torch
 import numpy as np
+import pandas as pd
 from transformers import AutoTokenizer
 import transformer_lens.patching as patching
 from transformer_lens import HookedTransformer, ActivationCache
-import transformer_lens.utils as utils
 
+from .arith_dataset import Op, ArithDataset
+from eap.graph import Graph
+from eap.evaluate import evaluate_grpah, evaluate_baseline
+from eap.attribute import attribute
+import eap.utils as utils
 
-class CircuitDiscovery:
-    pass
 
 
 def answer_logit_indices(tokenized_input, problems):
@@ -92,63 +95,63 @@ if __name__ == "__main__":
 
     print(torch.cuda.device_count(), torch.cuda.current_device())
 
-    toks = AutoTokenizer.from_pretrained("google/gemma-2-2b", padding_side="left")
-    toks.pad_token = toks.bos_token
+    # toks = AutoTokenizer.from_pretrained("google/gemma-2-2b", padding_side="left")
+    # toks.pad_token = toks.bos_token
 
-    m = HookedTransformer.from_pretrained("gemma-2b")
+    # m = HookedTransformer.from_pretrained("gemma-2b")
 
-    probs = arith_probs(args.op1_digs, args.op2_digs, n=args.N)
-    str_probs = fewshot_probs(probs, k=args.fewshot_k)
+    # probs = arith_probs(args.op1_digs, args.op2_digs, n=args.N)
+    # str_probs = fewshot_probs(probs, k=args.fewshot_k)
 
-    tokenized_input = toks(
-        str_probs, return_offsets_mapping=True, padding=True, return_tensors="pt"
-    )
-    idxs, ans_ids = answer_logit_indices(tokenized_input, str_probs)
-    idxs, ans_ids = pad_ans_idx_id(idxs, ans_ids)
-    idxs, ans_ids = torch.LongTensor(idxs), torch.LongTensor(ans_ids)
+    # tokenized_input = toks(
+    #     str_probs, return_offsets_mapping=True, padding=True, return_tensors="pt"
+    # )
+    # idxs, ans_ids = answer_logit_indices(tokenized_input, str_probs)
+    # idxs, ans_ids = pad_ans_idx_id(idxs, ans_ids)
+    # idxs, ans_ids = torch.LongTensor(idxs), torch.LongTensor(ans_ids)
 
-    chunks = torch.chunk(torch.arange(args.N), args.N // args.batch_size)
+    # chunks = torch.chunk(torch.arange(args.N), args.N // args.batch_size)
 
-    all_blocks = None
-    all_clean_logits = None
+    # all_blocks = None
+    # all_clean_logits = None
 
-    for i, batch in enumerate(chunks):
-        clean_batch_ids = tokenized_input["input_ids"][batch]
-        corr_batch_ids = tokenized_input["input_ids"][batch - 1]
-        clean_pos, corr_pos = idxs[batch], idxs[batch - 1]  # logit answer indices
-        clean_ans_ids, corr_ans_ids = (
-            ans_ids[batch],
-            ans_ids[batch],
-        )  # token answer indices
+    # for i, batch in enumerate(chunks):
+    #     clean_batch_ids = tokenized_input["input_ids"][batch]
+    #     corr_batch_ids = tokenized_input["input_ids"][batch - 1]
+    #     clean_pos, corr_pos = idxs[batch], idxs[batch - 1]  # logit answer indices
+    #     clean_ans_ids, corr_ans_ids = (
+    #         ans_ids[batch],
+    #         ans_ids[batch],
+    #     )  # token answer indices
 
-        corr_logits = m(corr_batch_ids)
-        _, clean_cache = m.run_with_cache(clean_batch_ids)
+    #     corr_logits = m(corr_batch_ids)
+    #     _, clean_cache = m.run_with_cache(clean_batch_ids)
 
-        metric = partial(
-            logit_diff,
-            clean_logits=None,
-            corrupted_logits=corr_logits,
-            clean_ans_pos=clean_pos,
-            clean_ans_ids=clean_ans_ids,
-        )
+    #     metric = partial(
+    #         logit_diff,
+    #         clean_logits=None,
+    #         corrupted_logits=corr_logits,
+    #         clean_ans_pos=clean_pos,
+    #         clean_ans_ids=clean_ans_ids,
+    #     )
 
-        attn_head_results = patching.get_act_patch_attn_head_pattern_all_pos(
-            m, corr_batch_ids, clean_cache, metric
-        ).to("cpu")
+    #     attn_head_results = patching.get_act_patch_attn_head_pattern_all_pos(
+    #         m, corr_batch_ids, clean_cache, metric
+    #     ).to("cpu")
 
-        if all_blocks is None:
-            all_blocks = attn_head_results * len(batch)
-        else:
-            all_blocks += attn_head_results * len(batch)
+    #     if all_blocks is None:
+    #         all_blocks = attn_head_results * len(batch)
+    #     else:
+    #         all_blocks += attn_head_results * len(batch)
 
-    pickle.dump(
-        str_probs,
-        open(f"data/patching_circuit/{args.op1_digs}-{args.op2_digs}-probs.pkl", "wb"),
-    )
-    pickle.dump(
-        (1 / args.N) * all_blocks,
-        open(
-            f"data/patching_circuit/{args.op1_digs}-{args.op2_digs}-all_blocks.pkl",
-            "wb",
-        ),
-    )
+    # pickle.dump(
+    #     str_probs,
+    #     open(f"data/patching_circuit/{args.op1_digs}-{args.op2_digs}-probs.pkl", "wb"),
+    # )
+    # pickle.dump(
+    #     (1 / args.N) * all_blocks,
+    #     open(
+    #         f"data/patching_circuit/{args.op1_digs}-{args.op2_digs}-all_blocks.pkl",
+    #         "wb",
+    #     ),
+    # )
