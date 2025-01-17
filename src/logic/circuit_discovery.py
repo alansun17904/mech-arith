@@ -36,9 +36,9 @@ def parse_args():
     parser.add_argument("model_name", type=str, help="model")
     parser.add_argument("ofname", type=str, help="output filename")
     parser.add_argument("op", choices=["ADD", "SUB", "MUL", "DIV"], help="operation")
-    parser.add_argument("--batch_size", type=int, help="batch size", default=32)
+    parser.add_argument("--batch_size", type=int, help="batch size", default=8)
     parser.add_argument("--seed", type=int, help="random seed", default=37)
-    parser.add_argument("--num", type=int, help="num problems", default=100)
+    parser.add_argument("--num", type=int, help="num problems", default=1000)
     parser.add_argument("--shots", type=int, help="few-shot prompting", default=3)
     return parser.parse_args()
 
@@ -55,7 +55,6 @@ def get_logit_positions(model: HookedTransformer, logits, labels):
     ## we count as a part of the answer token sequence
     equal_sign_pos = list(map(get_equal_pos, str_tokens))
     return logits[...,equal_sign_pos:, ...]
-
 
 def metric(model: HookedTransformer, logits, clean_logits, input_length, labels, mean=True, loss=True):
     bs, npos, dvocab = logits.shape
@@ -76,10 +75,20 @@ def metric(model: HookedTransformer, logits, clean_logits, input_length, labels,
 def perplexity(model: HookedTransformer, logits, clean_logits, input_length, labels, mean=True, loss=True):
     log_probs = F.log_softmax(logits, dim=-1)
     label_toks = model.to_tokens(labels, prepend_bos=True, padding_side="left")
-    correct_log_probs = log_probs.gather(dim=-1, index=targets.unsqueeze(-1))
+    correct_log_probs = log_probs.gather(dim=-1, index=label_toks.unsqueeze(-1))
     nll = -correct_log_probs.squeeze(-1)
-    mean_nll = nll.sum(dim=-1) / seq_len
-    perplexity = torch.exp(mean_nll).mean().item()
+
+    index_mask = torch.zeros_like(nll, dtype=torch.bool)
+    str_tokens = model.to_str_tokens(labels)
+    equal_sign_pos = torch.LongTensor(list(map(get_equal_pos, str_tokens))).to(logits.device)
+
+    for i in range(logits.shape[0]):
+        index_mask[i, equal_sign_pos[i]:logits.shape[1]-1] = 1
+
+    nll = nll * index_mask.float() 
+ 
+    mean_nll = nll.sum(dim=-1) / index_mask.sum(dim=-1)
+    perplexity = torch.exp(mean_nll).mean()
     return perplexity
 
 
@@ -111,4 +120,11 @@ if __name__ == "__main__":
     baseline = evaluate_baseline(model, dataloader, partial(perplexity, model))
     results = evaluate_graph(model, g, dataloader, partial(perplexity, model))
 
-    print(f"Original performance was {baseline}; the circuit's performance is {results}")
+    diff = (results - baseline).mean().item()
+
+    print(f"The circuit incurred extra {diff} perplexity.")
+
+    gz = g.to_graphviz()
+    gz.draw(f"gpt2-test.png", prog="dot")
+
+    print(g.count_included_nodes(), g.count_included_edges())
