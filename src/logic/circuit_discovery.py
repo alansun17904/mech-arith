@@ -8,18 +8,27 @@ from functools import partial
 import torch
 import numpy as np
 import pandas as pd
+import transformers
 from transformers import AutoTokenizer
 import transformer_lens.patching as patching
 from transformer_lens import HookedTransformer, ActivationCache
 
 from .arith_dataset import Op, ArithDataset
 from eap.graph import Graph
-from eap.evaluate import evaluate_grpah, evaluate_baseline
+from eap.evaluate import evaluate_graph, evaluate_baseline
 from eap.attribute import attribute
 import eap.utils as utils
 from eap.dataset import EAPDataset
-from ..utils import seed_everything
 
+
+def seed_everything(seed: int = 42):
+    random.seed(seed)
+    transformers.set_seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = True
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -34,15 +43,17 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    seed_everything(opts.seed)
     opts = parse_args()
+    seed_everything(opts.seed)
     arith_dataset = ArithDataset(Op[opts.op])
     arith_dataset.arith_probs(5, 5, opts.num)
     clean_strings = arith_dataset.to_str(shots=opts.shots)
-    corrupted_strings = random.shuffle(clean_strings[:])
+    corrupted_strings = clean_strings[:]
+    random.shuffle(corrupted_strings)
 
-    print(clean_strings)
-    print(corrupted_strings)
+    pd.make
+
+    eap_ds = EAPDataset()
 
 
 
