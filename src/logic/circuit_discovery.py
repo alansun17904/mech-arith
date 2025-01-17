@@ -73,11 +73,21 @@ def metric(model: HookedTransformer, logits, clean_logits, input_length, labels,
     results = F.kl_div(probs.log(), clean_probs.log(), log_target=True, reduction="none").mean(-1)
     return results.mean() if mean else results
 
+def perplexity(model: HookedTransformer, logits, clean_logits, input_length, labels, mean=True, loss=True):
+    log_probs = F.log_softmax(logits, dim=-1)
+    label_toks = model.to_tokens(labels, prepend_bos=True, padding_side="left")
+    correct_log_probs = log_probs.gather(dim=-1, index=targets.unsqueeze(-1))
+    nll = -correct_log_probs.squeeze(-1)
+    mean_nll = nll.sum(dim=-1) / seq_len
+    perplexity = torch.exp(mean_nll).mean().item()
+    return perplexity
+
+
 if __name__ == "__main__":
     opts = parse_args()
     seed_everything(opts.seed)
     arith_dataset = ArithDataset(Op[opts.op])
-    arith_dataset.arith_probs(5, 5, opts.num)
+    arith_dataset.arith_probs(2, 2, opts.num)
     clean_strings = arith_dataset.to_str(shots=opts.shots)
     corrupted_strings = clean_strings[:]
     random.shuffle(corrupted_strings)
@@ -97,3 +107,8 @@ if __name__ == "__main__":
     g.apply_topn(200, absolute=True)
     g.prune_dead_nodes()
     g.to_json(opts.ofname)
+
+    baseline = evaluate_baseline(model, dataloader, partial(perplexity, model))
+    results = evaluate_graph(model, g, dataloader, partial(perplexity, model))
+
+    print(f"Original performance was {baseline}; the circuit's performance is {results}")
