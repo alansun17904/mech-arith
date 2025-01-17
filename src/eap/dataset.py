@@ -1,12 +1,13 @@
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
+from transformer_lens import HookedTransformer
 
 
 def collate_EAP(xs):
     clean, corrupted, labels = zip(*xs)
     clean = list(clean)
     corrupted = list(corrupted)
-    return clean, corrupted, labels
+    return clean, corrupted, list(labels)
 
 
 class EAPDataset(Dataset):
@@ -26,7 +27,7 @@ class EAPDataset(Dataset):
 		self.df = self.df.head(n)
 
 	def __getitem__(self, idx):
-		row = self.df.iloc[index]
+		row = self.df.iloc[idx]
 		return row["clean"], row["corrupted"], row["label"]
 
 	def to_dataloader(self, batch_size: int):

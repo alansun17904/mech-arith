@@ -1,9 +1,11 @@
-from typing import Tuple
+from typing import Tuple, List
 
 import numpy as np
 import pandas as pd
 import torch
+from torch import Tensor
 import torch.nn.functional as F
+from transformer_lens import HookedTransformer
 
 
 def model2family(model_name: str):
@@ -48,7 +50,7 @@ def precision_at_k(
     results = torch.stack(results)
     return results.mean() if mean else results
 
-
+ 
 def prob_diff_hypernymy(
     clean_logits,
     corrupted_logits,
