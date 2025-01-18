@@ -36,9 +36,11 @@ def parse_args():
     parser.add_argument("model_name", type=str, help="model")
     parser.add_argument("ofname", type=str, help="output filename")
     parser.add_argument("op", choices=["ADD", "SUB", "MUL", "DIV"], help="operation")
+    parser.add_argument("dig1", type=int, help="number of digits in first operand")
+    parser.add_argument("dig2", type=int, help="number of digits in second operand")
     parser.add_argument("--batch_size", type=int, help="batch size", default=8)
     parser.add_argument("--seed", type=int, help="random seed", default=37)
-    parser.add_argument("--num", type=int, help="num problems", default=1000)
+    parser.add_argument("--num", type=int, help="num problems", default=1024)
     parser.add_argument("--shots", type=int, help="few-shot prompting", default=3)
     return parser.parse_args()
 
@@ -96,7 +98,7 @@ if __name__ == "__main__":
     opts = parse_args()
     seed_everything(opts.seed)
     arith_dataset = ArithDataset(Op[opts.op])
-    arith_dataset.arith_probs(2, 2, opts.num)
+    arith_dataset.arith_probs(opts.dig1, opts.dig2, opts.num)
     clean_strings = arith_dataset.to_str(shots=opts.shots)
     corrupted_strings = clean_strings[:]
     random.shuffle(corrupted_strings)
@@ -107,15 +109,25 @@ if __name__ == "__main__":
         "label": clean_strings
     }
     df = pd.DataFrame(data_dict)
+    
+    print("Number of patching data points:", len(df))
+    print("Batch size:", opts.batch_size) 
+    
+
     eap_ds = EAPDataset(df)
     dataloader = eap_ds.to_dataloader(opts.batch_size)
 
     model = HookedTransformer.from_pretrained(opts.model_name)
+
+    model.cfg.use_split_qkv_input = True
+    model.cfg.use_attn_result = True
+    model.cfg.use_hook_mlp_in = True
+
     g = Graph.from_model(model)
-    attribute(model, g, dataloader, partial(metric, model), method="EAP-IG", ig_steps=15)
-    g.apply_topn(200, absolute=True)
+    attribute(model, g, dataloader, partial(metric, model), method="EAP-IG", ig_steps=5)
+    g.apply_topn(100, absolute=True)
     g.prune_dead_nodes()
-    g.to_json(opts.ofname)
+    g.to_json(f"{opts.ofname}.json")
 
     baseline = evaluate_baseline(model, dataloader, partial(perplexity, model))
     results = evaluate_graph(model, g, dataloader, partial(perplexity, model))
@@ -125,6 +137,6 @@ if __name__ == "__main__":
     print(f"The circuit incurred extra {diff} perplexity.")
 
     gz = g.to_graphviz()
-    gz.draw(f"gpt2-test.png", prog="dot")
+    gz.draw(f"{opts.ofname}.png", prog="dot")
 
     print(g.count_included_nodes(), g.count_included_edges())
