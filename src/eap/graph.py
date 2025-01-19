@@ -85,10 +85,12 @@ class MLPNode(Node):
 
 class AttentionNode(Node):
     head: int
+    kv_head: int
 
-    def __init__(self, layer: int, head: int):
+    def __init__(self, layer: int, head: int, cfg: Dict):
         name = f"a{layer}.h{head}"
         self.head = head
+        self.kv_head = head // cfg["qk_groups"]
         index = (slice(None), slice(None), head)
         super().__init__(
             name,
@@ -265,15 +267,23 @@ class Graph:
         elif isinstance(node, LogitNode):
             return -1
         elif isinstance(node, MLPNode):
-            return (node.layer) * (3 * self.cfg["n_heads"] + 1) + 3 * self.cfg[
-                "n_heads"
-            ]
+            total_heads_per_layer = self.cfg["n_heads"] + 2 * self.cfg["n_kv_heads"]
+            return (node.layer) * total_heads_per_layer + self.cfg["n_heads"] + 2 * self.cfg["n_kv_heads"]
         elif isinstance(node, AttentionNode):
             assert qkv in "qkv", f"Must give qkv for AttentionNode, but got {qkv}"
-            i = node.layer * (3 * self.cfg["n_heads"] + 1) + (
-                "qkv".index(qkv) * self.cfg["n_heads"]
-            )
-            return slice(i, i + self.cfg["n_heads"]) if attn_slice else i + node.head
+            total_heads_per_layer = self.cfg["n_heads"] + 2 * self.cfg["n_kv_heads"]
+            layer_offset = node.layer * total_heads_per_layer
+
+            if qkv == 'q':
+                # Query heads remain the same
+                i = layer_offset
+                slice_size = self.cfg["n_heads"]
+            else:
+                # Key and value heads are grouped
+                kv_offset = self.cfg["n_heads"] if qkv == 'k' else (self.cfg["n_heads"] + self.cfg["n_kv_heads"])
+                i = layer_offset + kv_offset
+                slice_size = self.cfg["n_kv_heads"]
+            return slice(i, i + slice_size) if attn_slice else i + (node.head if qkv == 'q' else node.kv_head)
         else:
             raise ValueError(f"Invalid node: {node} of type {type(node)}")
 
@@ -438,6 +448,8 @@ class Graph:
                 "n_layers": cfg.n_layers,
                 "n_heads": cfg.n_heads,
                 "parallel_attn_mlp": cfg.parallel_attn_mlp,
+                "n_kv_heads": getattr(cfg, "n_key_value_heads", cfg.n_key_value_heads),  # Add GQA support
+                "qk_groups": getattr(cfg, "qk_groups", 1)  # Number of query heads per KV head
             }
         elif isinstance(model_or_config, HookedTransformerConfig):
             cfg = model_or_config
@@ -445,6 +457,8 @@ class Graph:
                 "n_layers": cfg.n_layers,
                 "n_heads": cfg.n_heads,
                 "parallel_attn_mlp": cfg.parallel_attn_mlp,
+                "n_kv_heads": getattr(cfg, "n_key_value_heads", cfg.n_key_value_heads),  # Add GQA support
+                "qk_groups": getattr(cfg, "qk_groups", 1)  # Number of query heads per KV head
             }
         else:
             graph.cfg = model_or_config
@@ -455,7 +469,7 @@ class Graph:
 
         for layer in range(graph.cfg["n_layers"]):
             attn_nodes = [
-                AttentionNode(layer, head) for head in range(graph.cfg["n_heads"])
+                AttentionNode(layer, head, graph.cfg) for head in range(graph.cfg["n_heads"])
             ]
             mlp_node = MLPNode(layer)
 
@@ -491,7 +505,10 @@ class Graph:
         graph.nodes[logit_node.name] = logit_node
 
         graph.n_forward = 1 + graph.cfg["n_layers"] * (graph.cfg["n_heads"] + 1)
-        graph.n_backward = graph.cfg["n_layers"] * (3 * graph.cfg["n_heads"] + 1) + 1
+        graph.n_backward = (
+            graph.cfg["n_layers"] *
+            (graph.cfg["n_heads"] + 2 * graph.cfg["n_kv_heads"] + 1)  # MLP
+        ) + 1
 
         return graph
 
