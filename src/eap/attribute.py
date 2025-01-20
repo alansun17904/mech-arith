@@ -56,7 +56,7 @@ def make_hooks_and_matrices(
         if not add:
             acts = -acts
         try:
-            activation_difference[:, :, index] += acts
+            activation_difference[:, :, index] += acts.to(activation_difference.device)
         except RuntimeError as e:
             print(
                 "Activation Hook Error",
@@ -85,13 +85,14 @@ def make_hooks_and_matrices(
         try:
             if grads.ndim == 3:
                 grads = grads.unsqueeze(2)
+
             s = einsum(
                 activation_difference[:, :, :prev_index],
-                grads,
+                grads.to(activation_difference.device),
                 "batch pos forward hidden, batch pos backward hidden -> forward backward",
             )
             s = s.squeeze(1)  # .to(scores.device)
-            scores[:prev_index, bwd_index] += s
+            scores[:prev_index, bwd_index] += s.to(scores.device)
         except RuntimeError as e:
             print(
                 "Gradient Hook Error",

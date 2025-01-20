@@ -72,7 +72,7 @@ def evaluate_graph(
                     in_graph_vector,
                     "batch pos previous hidden, previous -> batch pos hidden",
                 )
-            activations += update
+            activations += update.to(activations.device)
             return activations
 
         return input_construction_hook
@@ -167,7 +167,7 @@ def evaluate_graph(
                     logits = model(clean_tokens, attention_mask=attention_mask)
 
         for i, metric in enumerate(metrics):
-            r = metric(logits, corrupted_logits, input_lengths, label).cpu()
+            r = metric(logits, corrupted_logits.to(logits.device), input_lengths.to(logits.device), label).cpu()
             if len(r.size()) == 0:
                 r = r.unsqueeze(0)
             results[i].append(r)
@@ -210,11 +210,12 @@ def evaluate_baseline(
         with torch.inference_mode():
             corrupted_logits = model(corrupted_tokens, attention_mask=attention_mask)
             logits = model(clean_tokens, attention_mask=attention_mask)
+
         for i, metric in enumerate(metrics):
             if run_corrupted:
-                r = metric(corrupted_logits, logits, input_lengths, label).cpu()
+                r = metric(corrupted_logits.to(logits.device), logits, input_lengths.to(logits.device), label).cpu()
             else:
-                r = metric(logits, corrupted_logits, input_lengths, label).cpu()
+                r = metric(logits, corrupted_logits.to(logits.device), input_lengths.to(logits.device), label).cpu()
             if len(r.size()) == 0:
                 r = r.unsqueeze(0)
             results[i].append(r)
@@ -380,7 +381,7 @@ def evaluate_graph_generate(
                     logits = model(clean_tokens, attention_mask=attention_mask)
 
         for i, metric in enumerate(metrics):
-            r = metric(logits, corrupted_logits, input_lengths, label).cpu()
+            r = metric(logits, corrupted_logits.to(logits.device), input_lengths.to(logits.device), label.to(logits.device)).cpu()
             if len(r.size()) == 0:
                 r = r.unsqueeze(0)
             results[i].append(r)

@@ -75,8 +75,8 @@ def metric(model: HookedTransformer, logits, clean_logits, input_length, labels,
     return results.mean() if mean else results
 
 def perplexity(model: HookedTransformer, logits, clean_logits, input_length, labels, mean=True, loss=True):
-    log_probs = F.log_softmax(logits, dim=-1)
-    label_toks = model.to_tokens(labels, prepend_bos=True, padding_side="left")
+    log_probs = F.log_softmax(logits, dim=-1).to(logits.device)
+    label_toks = model.to_tokens(labels, prepend_bos=True, padding_side="left").to(logits.device)
     correct_log_probs = log_probs.gather(dim=-1, index=label_toks.unsqueeze(-1))
     nll = -correct_log_probs.squeeze(-1)
 
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     eap_ds = EAPDataset(df)
     dataloader = eap_ds.to_dataloader(opts.batch_size)
 
-    model = HookedTransformer.from_pretrained(opts.model_name)
+    model = HookedTransformer.from_pretrained(opts.model_name, n_devices=1)
 
     model.cfg.use_split_qkv_input = True
     model.cfg.use_attn_result = True
