@@ -87,8 +87,8 @@ def perplexity(model: HookedTransformer, logits, clean_logits, input_length, lab
     for i in range(logits.shape[0]):
         index_mask[i, equal_sign_pos[i]:logits.shape[1]-1] = 1
 
-    nll = nll * index_mask.float() 
- 
+    nll = nll * index_mask.float()
+
     mean_nll = nll.sum(dim=-1) / index_mask.sum(dim=-1)
     perplexity = torch.exp(mean_nll).mean()
     return perplexity
@@ -109,10 +109,10 @@ if __name__ == "__main__":
         "label": clean_strings
     }
     df = pd.DataFrame(data_dict)
-    
+
     print("Number of patching data points:", len(df))
-    print("Batch size:", opts.batch_size) 
-    
+    print("Batch size:", opts.batch_size)
+
 
     eap_ds = EAPDataset(df)
     dataloader = eap_ds.to_dataloader(opts.batch_size)

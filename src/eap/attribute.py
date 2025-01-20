@@ -269,7 +269,6 @@ def get_scores_eap_ig(
                 logits = model(clean_tokens, attention_mask=attention_mask)
                 metric_value = metric(logits, clean_logits, input_lengths, label)
                 metric_value.backward()
-
     scores /= total_items
     scores /= total_steps
 
@@ -556,6 +555,9 @@ def attribute(
         scores = torch.linalg.vector_norm(scores, ord=2, dim=-1)
 
     scores = scores.cpu().numpy()
+
+    print(scores.shape)
+    print(len(graph.edges.values()))
 
     for edge in tqdm(graph.edges.values(), total=len(graph.edges)):
         edge.score = scores[
