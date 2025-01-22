@@ -6,11 +6,22 @@ import random
 import argparse
 import numpy as np
 from torch.utils.data import DataLoader
+import transformers
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformer_lens import HookedTransformer
 
 from utils import seed_everything
-from arith_dataset import Op, ArithDataset
+from logic.arith_dataset import Op, ArithDataset
 
+
+def seed_everything(seed: int = 42):
+    random.seed(seed)
+    transformers.set_seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = True
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -18,61 +29,39 @@ def parse_args():
     parser.add_argument("ofname", type=str, help="output filename")
     parser.add_argument("op", choices=["ADD", "SUB", "MUL", "DIV"], help="operation")
     parser.add_argument("--batch_size", type=int, help="batch size", default=32)
-    parser.add_argument("--seed", type=int, help="random seed", default=37)
-    parser.add_argument("--num", type=int, help="num problems", default=100)
+    parser.add_argument("--seed", type=int, help="random seed", default=42)
+    parser.add_argument("--num", type=int, help="num problems", default=1000)
     parser.add_argument("--shots", type=int, help="few-shot prompting", default=3)
     return parser.parse_args()
 
-
-def init_model(model_name):
-    model = AutoModelForCausalLM.from_pretrained(model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
-    if "gpt" in model_name or "llama" in model_name.lower():
-        tokenizer.pad_token = tokenizer.eos_token
-    elif tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.bos_token
-    return model, tokenizer
-
-
-def eval_pass(model, tokenizer, dataloader):
+@torch.inference_mode()
+def eval_pass(model, dataloader):
     model.eval()
     out_texts = []
     for input_token, attn_mask in dataloader:
-        input_token = input_token.to(model.device)
-        attn_mask = attn_mask.to(model.device)
         outputs = model.generate(
-            input_ids=input_token, attention_mask=attn_mask, max_new_tokens=15
+            input_token, max_new_tokens=15, verbose=False
         )
-        decoded_texts = tokenizer.batch_decode(
-            outputs,
-            skip_special_tokens=True,
-            clean_up_tokenization_spaces=False,
-        )
+        decoded_texts = model.to_string(outputs)
         out_texts.extend(decoded_texts)
     return out_texts
 
 
 if __name__ == "__main__":
-    from transformers import logging
+    opts = parse_args()
+    seed_everything(opts.seed)
 
-    seed_everything(42)
-    logging.set_verbosity_error()
-    args = parse_args()
-
-    seed_everything(args.seed)
-    model, tokenizer = init_model(args.model_name)
-    op = Op[args.op]
+    op = Op[opts.op]
     d = dict()
+    model = HookedTransformer.from_pretrained(opts.model_name, n_devices=1)
 
     for dig1 in tqdm.tqdm(range(1, 9)):
-        lower = dig1 if op is Op.DIV else 1
-        for dig2 in tqdm.tqdm(range(lower, 9), leave=False):
+        for dig2 in tqdm.tqdm(range(1, 9)):
             dataset = ArithDataset(op)
-            dataset.arith_probs(dig1, dig2, args.num)
-            dataset.to_str(shots=args.shots)
-            dataset.tok_probs(tokenizer)
-            loader = DataLoader(dataset, batch_size=args.batch_size)
-
-            out_texts = eval_pass(model, tokenizer, loader)
+            dataset.arith_probs(dig1, dig2, opts.num)
+            dataset.to_str(shots=opts.shots)
+            dataset.tok_probs(model)
+            loader = DataLoader(dataset, batch_size=opts.batch_size)
+            out_texts = eval_pass(model, loader)
             d[(dig1, dig2)] = [dataset.parse_ans(v) for v in out_texts]
-    pickle.dump(d, open(f"{args.ofname}-benchmark.json", "wb+"))
+    pickle.dump(d, open(f"{opts.ofname}-benchmark.pkl", "wb+"))
