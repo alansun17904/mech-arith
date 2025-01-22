@@ -126,8 +126,9 @@ if __name__ == "__main__":
     g = Graph.from_model(model)
     attribute(model, g, dataloader, partial(metric, model), method="EAP-IG", ig_steps=5)
     g.apply_topn(100, absolute=True)
-    g.prune_dead_nodes()
     g.to_json(f"{opts.ofname}.json")
+    g.prune_dead_nodes()
+    g.to_json(f"{opts.ofname}-pruned.json")
 
     baseline = evaluate_baseline(model, dataloader, partial(perplexity, model))
     results = evaluate_graph(model, g, dataloader, partial(perplexity, model))
