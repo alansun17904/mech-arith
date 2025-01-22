@@ -1,4 +1,4 @@
-"""arith_bench.py
+"""arith_dataset.py
 Generates a dataset of random arithmetic problems of various lengths with
 different operations and outputs them as a json file.
 """
@@ -100,7 +100,7 @@ class ArithDataset(Dataset):
         else:
             return (op1, op2, op1 * op2)
 
-    def to_str(self, probs: List[Tuple[int]] = None, shots: int = 0):
+    def to_str(self, probs: List[Tuple[int]] = None, shots: int = 0, add_ans=True):
         """Converts arithmetic problems to their input prompts.
 
         Args:
@@ -130,7 +130,7 @@ class ArithDataset(Dataset):
                 [f"{v[0]} {oper} {v[1]} = {v[2]}" for v in few_shots]
             )
             few_shot_header += "\n" if len(few_shot_header) > 0 else ""
-            prompt = few_shot_header + f"{prob[0]} {oper} {prob[1]} = "
+            prompt = few_shot_header + f"{prob[0]} {oper} {prob[1]} = {'' if not add_ans else prob[2]}"
             weights[i] = 1
             prompts.append(prompt)
         self.prompts = prompts

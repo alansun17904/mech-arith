@@ -185,7 +185,6 @@ if __name__ == "__main__":
     g.apply_topn(200, absolute=True)
     g.to_json(f"{opts.ofname}.json")
     g.prune_dead_nodes()
-    g.to_json(f"{opts.ofname}-pruned.json")
 
     baseline = evaluate_baseline(model, dataloader, partial(perplexity, model))
     results = evaluate_graph(model, g, dataloader, partial(perplexity, model))
