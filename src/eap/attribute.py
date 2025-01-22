@@ -40,6 +40,7 @@ def make_hooks_and_matrices(
         dtype=model.cfg.dtype,
     )
 
+
     processed_attn_layers = set()
     fwd_hooks_clean = []
     fwd_hooks_corrupted = []
@@ -176,11 +177,11 @@ def get_scores_eap(
     total_items = 0
     dataloader = dataloader if quiet else tqdm(dataloader)
     for clean, corrupted, label in dataloader:
-        batch_size = len(clean)
-        total_items += batch_size
+        clean_tokens, attention_mask, input_lengths, n_pos = clean
+        corrupted_tokens, _, _, _ = corrupted
 
-        clean_tokens, attention_mask, input_lengths, n_pos = tokenize_plus(model, clean)
-        corrupted_tokens, _, _, _ = tokenize_plus(model, corrupted)
+        batch_size = len(clean_tokens)
+        total_items += batch_size
 
         (
             fwd_hooks_corrupted,
@@ -218,11 +219,11 @@ def get_scores_eap_ig(
     total_items = 0
     dataloader = dataloader if quiet else tqdm(dataloader)
     for clean, corrupted, label in dataloader:
-        batch_size = len(clean)
+        clean_tokens, attention_mask, input_lengths, n_pos = clean
+        corrupted_tokens, _, _, _ = corrupted
+        batch_size = len(clean_tokens)
         total_items += batch_size
 
-        clean_tokens, attention_mask, input_lengths, n_pos = tokenize_plus(model, clean)
-        corrupted_tokens, _, _, _ = tokenize_plus(model, corrupted)
 
         (
             fwd_hooks_corrupted,
@@ -291,11 +292,11 @@ def get_scores_ig_partial_activations(
     total_items = 0
     dataloader = dataloader if quiet else tqdm(dataloader)
     for clean, corrupted, label in dataloader:
-        batch_size = len(clean)
-        total_items += batch_size
+        clean_tokens, attention_mask, input_lengths, n_pos = clean
+        corrupted_tokens, _, _, _ = corrupted
 
-        clean_tokens, attention_mask, input_lengths, n_pos = tokenize_plus(model, clean)
-        corrupted_tokens, _, _, _ = tokenize_plus(model, corrupted)
+        batch_size = len(clean_tokens)
+        total_items += batch_size
 
         (
             fwd_hooks_corrupted,
@@ -361,11 +362,12 @@ def get_scores_ig_activations(
     total_items = 0
     dataloader = dataloader if quiet else tqdm(dataloader)
     for clean, corrupted, label in dataloader:
-        batch_size = len(clean)
+        clean_tokens, attention_mask, input_lengths, n_pos = clean
+        corrupted_tokens, _, _, _ = corrupted
+
+        batch_size = len(clean_tokens)
         total_items += batch_size
 
-        clean_tokens, attention_mask, input_lengths, n_pos = tokenize_plus(model, clean)
-        corrupted_tokens, _, _, _ = tokenize_plus(model, corrupted)
 
         detach = bool(ablate_all_at_once)
         (_, _, bwd_hooks), activation_difference = make_hooks_and_matrices(
@@ -457,11 +459,12 @@ def get_scores_clean_corrupted(
     total_items = 0
     dataloader = dataloader if quiet else tqdm(dataloader)
     for clean, corrupted, label in dataloader:
-        batch_size = len(clean)
-        total_items += batch_size
 
-        clean_tokens, attention_mask, input_lengths, n_pos = tokenize_plus(model, clean)
-        corrupted_tokens, _, _, _ = tokenize_plus(model, corrupted)
+        clean_tokens, attention_mask, input_lengths, n_pos = clean
+        corrupted_tokens, _, _, _ = corrupted
+
+        batch_size = len(clean_tokens)
+        total_items += batch_size
 
         (
             fwd_hooks_corrupted,

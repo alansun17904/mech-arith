@@ -1,7 +1,6 @@
 """arith_bench.py
 Generates a dataset of random arithmetic problems of various lengths with
 different operations and outputs them as a json file. 
-and outputs them as a json file. 
 """
 
 

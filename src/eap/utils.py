@@ -50,7 +50,7 @@ def precision_at_k(
     results = torch.stack(results)
     return results.mean() if mean else results
 
- 
+
 def prob_diff_hypernymy(
     clean_logits,
     corrupted_logits,

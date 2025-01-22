@@ -140,15 +140,15 @@ def evaluate_graph(
 
     dataloader = dataloader if quiet else tqdm(dataloader)
     for clean, corrupted, label in dataloader:
-        clean_tokens, attention_mask, input_lengths, n_pos = tokenize_plus(model, clean)
-        corrupted_tokens, _, _, _ = tokenize_plus(model, corrupted)
+        clean_tokens, attention_mask, input_lengths, n_pos = clean
+        corrupted_tokens, _, _, _ = corrupted
 
         (
             fwd_hooks_corrupted,
             fwd_hooks_clean,
             _,
         ), activation_difference = make_hooks_and_matrices(
-            model, graph, len(clean), n_pos, None
+            model, graph, len(clean_tokens), n_pos, None
         )
 
         input_construction_hooks = make_input_construction_hooks(
@@ -167,7 +167,12 @@ def evaluate_graph(
                     logits = model(clean_tokens, attention_mask=attention_mask)
 
         for i, metric in enumerate(metrics):
-            r = metric(logits, corrupted_logits.to(logits.device), input_lengths.to(logits.device), label).cpu()
+            r = metric(
+                logits,
+                corrupted_logits.to(logits.device),
+                input_lengths.to(logits.device),
+                label,
+            ).cpu()
             if len(r.size()) == 0:
                 r = r.unsqueeze(0)
             results[i].append(r)
@@ -204,8 +209,8 @@ def evaluate_baseline(
     results = [[] for _ in metrics]
     dataloader = dataloader if quiet else tqdm(dataloader)
     for clean, corrupted, label in tqdm(dataloader):
-        clean_tokens, attention_mask, input_lengths, _ = tokenize_plus(model, clean)
-        corrupted_tokens, _, _, _ = tokenize_plus(model, corrupted)
+        clean_tokens, attention_mask, input_lengths, _ = clean
+        corrupted_tokens, _, _, _ = corrupted
 
         with torch.inference_mode():
             corrupted_logits = model(corrupted_tokens, attention_mask=attention_mask)
@@ -213,9 +218,19 @@ def evaluate_baseline(
 
         for i, metric in enumerate(metrics):
             if run_corrupted:
-                r = metric(corrupted_logits.to(logits.device), logits, input_lengths.to(logits.device), label).cpu()
+                r = metric(
+                    corrupted_logits.to(logits.device),
+                    logits,
+                    input_lengths.to(logits.device),
+                    label,
+                ).cpu()
             else:
-                r = metric(logits, corrupted_logits.to(logits.device), input_lengths.to(logits.device), label).cpu()
+                r = metric(
+                    logits,
+                    corrupted_logits.to(logits.device),
+                    input_lengths.to(logits.device),
+                    label,
+                ).cpu()
             if len(r.size()) == 0:
                 r = r.unsqueeze(0)
             results[i].append(r)
@@ -354,15 +369,15 @@ def evaluate_graph_generate(
 
     dataloader = dataloader if quiet else tqdm(dataloader)
     for clean, corrupted, label in dataloader:
-        clean_tokens, attention_mask, input_lengths, n_pos = tokenize_plus(model, clean)
-        corrupted_tokens, _, _, _ = tokenize_plus(model, corrupted)
+        clean_tokens, attention_mask, input_lengths, n_pos = clean
+        corrupted_tokens, _, _, _ = corrupted
 
         (
             fwd_hooks_corrupted,
             fwd_hooks_clean,
             _,
         ), activation_difference = make_hooks_and_matrices(
-            model, graph, len(clean), n_pos, None
+            model, graph, len(clean_tokens), n_pos, None
         )
 
         input_construction_hooks = make_input_construction_hooks(
@@ -381,7 +396,12 @@ def evaluate_graph_generate(
                     logits = model(clean_tokens, attention_mask=attention_mask)
 
         for i, metric in enumerate(metrics):
-            r = metric(logits, corrupted_logits.to(logits.device), input_lengths.to(logits.device), label.to(logits.device)).cpu()
+            r = metric(
+                logits,
+                corrupted_logits.to(logits.device),
+                input_lengths.to(logits.device),
+                label.to(logits.device),
+            ).cpu()
             if len(r.size()) == 0:
                 r = r.unsqueeze(0)
             results[i].append(r)

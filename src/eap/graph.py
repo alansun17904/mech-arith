@@ -268,26 +268,50 @@ class Graph:
             return self.n_backward - 1
         elif isinstance(node, MLPNode):
             total_heads_per_layer = self.cfg["n_heads"] + 2 * self.cfg["n_kv_heads"]
-            mlp_index = (node.layer) * total_heads_per_layer + self.cfg["n_heads"] + 2 * self.cfg["n_kv_heads"]
-            assert mlp_index < self.n_backward, f"MLP index {mlp_index} >= n_backward {self.n_backward}"
-            return (node.layer) * total_heads_per_layer + self.cfg["n_heads"] + 2 * self.cfg["n_kv_heads"]
+            mlp_index = (
+                (node.layer) * total_heads_per_layer
+                + self.cfg["n_heads"]
+                + 2 * self.cfg["n_kv_heads"]
+            )
+            assert (
+                mlp_index < self.n_backward
+            ), f"MLP index {mlp_index} >= n_backward {self.n_backward}"
+            return (
+                (node.layer) * total_heads_per_layer
+                + self.cfg["n_heads"]
+                + 2 * self.cfg["n_kv_heads"]
+            )
         elif isinstance(node, AttentionNode):
             assert qkv in "qkv", f"Must give qkv for AttentionNode, but got {qkv}"
             total_heads_per_layer = self.cfg["n_heads"] + 2 * self.cfg["n_kv_heads"]
             layer_offset = node.layer * total_heads_per_layer
 
-            if qkv == 'q':
+            if qkv == "q":
                 # Query heads remain the same
                 i = layer_offset
                 slice_size = self.cfg["n_heads"]
             else:
                 # Key and value heads are grouped
-                kv_offset = self.cfg["n_heads"] if qkv == 'k' else (self.cfg["n_heads"] + self.cfg["n_kv_heads"])
+                kv_offset = (
+                    self.cfg["n_heads"]
+                    if qkv == "k"
+                    else (self.cfg["n_heads"] + self.cfg["n_kv_heads"])
+                )
                 i = layer_offset + kv_offset
                 slice_size = self.cfg["n_kv_heads"]
-            final_index = i + (slice_size if attn_slice else (node.head if qkv == 'q' else node.kv_head))
-            assert final_index < self.n_backward, f"Attention index {final_index} >= n_backward {self.n_backward}"
-            return slice(i, i + slice_size) if attn_slice else i + (node.head if qkv == 'q' else node.kv_head)
+            final_index = i + (
+                slice_size
+                if attn_slice
+                else (node.head if qkv == "q" else node.kv_head)
+            )
+            assert (
+                final_index < self.n_backward
+            ), f"Attention index {final_index} >= n_backward {self.n_backward}"
+            return (
+                slice(i, i + slice_size)
+                if attn_slice
+                else i + (node.head if qkv == "q" else node.kv_head)
+            )
         else:
             raise ValueError(f"Invalid node: {node} of type {type(node)}")
 
@@ -452,7 +476,9 @@ class Graph:
                 "n_layers": cfg.n_layers,
                 "n_heads": cfg.n_heads,
                 "parallel_attn_mlp": cfg.parallel_attn_mlp,
-                "n_kv_heads": getattr(cfg, "n_key_value_heads", cfg.n_heads),  # Add GQA support
+                "n_kv_heads": getattr(
+                    cfg, "n_key_value_heads", cfg.n_heads
+                ),  # Add GQA support
             }
         elif isinstance(model_or_config, HookedTransformerConfig):
             cfg = model_or_config
@@ -460,7 +486,9 @@ class Graph:
                 "n_layers": cfg.n_layers,
                 "n_heads": cfg.n_heads,
                 "parallel_attn_mlp": cfg.parallel_attn_mlp,
-                "n_kv_heads": getattr(cfg, "n_key_value_heads", cfg.n_key_value_heads),  # Add GQA support
+                "n_kv_heads": getattr(
+                    cfg, "n_key_value_heads", cfg.n_key_value_heads
+                ),  # Add GQA support
             }
         else:
             graph.cfg = model_or_config
@@ -471,7 +499,8 @@ class Graph:
 
         for layer in range(graph.cfg["n_layers"]):
             attn_nodes = [
-                AttentionNode(layer, head, graph.cfg) for head in range(graph.cfg["n_heads"])
+                AttentionNode(layer, head, graph.cfg)
+                for head in range(graph.cfg["n_heads"])
             ]
             mlp_node = MLPNode(layer)
 
@@ -514,8 +543,11 @@ class Graph:
             graph.cfg["n_heads"] - 1,  # Max Q index
             graph.cfg["n_kv_heads"] - 1,  # Max K/V index
         )
-        assert (graph.cfg["n_layers"] - 1) * heads_per_layer + max_index_needed < graph.n_backward, \
-                        "n_backward calculation insufficient"
+        assert (
+            graph.cfg["n_layers"] - 1
+        ) * heads_per_layer + max_index_needed < graph.n_backward, (
+            "n_backward calculation insufficient"
+        )
 
         return graph
 

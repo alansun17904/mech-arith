@@ -12,6 +12,7 @@ import transformers
 from transformers import AutoTokenizer
 import transformer_lens.patching as patching
 from transformer_lens import HookedTransformer, ActivationCache
+from transformer_lens.utils import get_attention_mask
 import torch.nn.functional as F
 
 from .arith_dataset import Op, ArithDataset
@@ -31,6 +32,7 @@ def seed_everything(seed: int = 42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_name", type=str, help="model")
@@ -44,6 +46,33 @@ def parse_args():
     parser.add_argument("--shots", type=int, help="few-shot prompting", default=3)
     return parser.parse_args()
 
+
+def collate_fn_arithmetic(model, xs):
+    clean, corrupted_strings, labels = zip(*xs)
+    # the clean and corrupted strings together
+    batch_size = len(clean)
+    all_examples = clean + corrupted_strings
+    tokens = model.to_tokens(all_examples, prepend_bos=True, padding_side="left")
+    attention_mask = get_attention_mask(model.tokenizer, tokens, True)
+    input_lengths = attention_mask.sum(1)
+    n_pos = attention_mask.size(1)
+    return (
+        (
+            tokens[:batch_size],
+            attention_mask[:batch_size],
+            input_lengths[:batch_size],
+            n_pos,
+        ),
+        (
+            tokens[batch_size:],
+            attention_mask[batch_size:],
+            input_lengths[batch_size:],
+            n_pos,
+        ),
+        list(labels),
+    )
+
+
 def get_equal_pos(str_tokens):
     for i in range(len(str_tokens) - 1, -1, -1):
         if "=" in str_tokens[i]:
@@ -56,12 +85,23 @@ def get_logit_positions(model: HookedTransformer, logits, labels):
     ## everything including the equal sign and not including the last token
     ## we count as a part of the answer token sequence
     equal_sign_pos = list(map(get_equal_pos, str_tokens))
-    return logits[...,equal_sign_pos:, ...]
+    return logits[..., equal_sign_pos:, ...]
 
-def metric(model: HookedTransformer, logits, clean_logits, input_length, labels, mean=True, loss=True):
+
+def metric(
+    model: HookedTransformer,
+    logits,
+    clean_logits,
+    input_length,
+    labels,
+    mean=True,
+    loss=True,
+):
     bs, npos, dvocab = logits.shape
     str_tokens = model.to_str_tokens(labels)
-    equal_sign_pos = torch.LongTensor(list(map(get_equal_pos, str_tokens))).to(logits.device)
+    equal_sign_pos = torch.LongTensor(list(map(get_equal_pos, str_tokens))).to(
+        logits.device
+    )
     pos_ids = torch.arange(npos, device=logits.device).unsqueeze(0).expand(bs, -1)
     mask = (pos_ids >= equal_sign_pos.unsqueeze(1)) & (pos_ids < npos - 1)
     mask = mask.unsqueeze(-1).expand(-1, -1, dvocab)
@@ -71,26 +111,41 @@ def metric(model: HookedTransformer, logits, clean_logits, input_length, labels,
 
     probs = torch.softmax(logits_selected, dim=-1)
     clean_probs = torch.softmax(clean_logits_selected, dim=-1)
-    results = F.kl_div(probs.log(), clean_probs.log(), log_target=True, reduction="none").mean(-1)
+    results = F.kl_div(
+        probs.log(), clean_probs.log(), log_target=True, reduction="none"
+    ).mean(-1)
     return results.mean() if mean else results
 
-def perplexity(model: HookedTransformer, logits, clean_logits, input_length, labels, mean=True, loss=True):
+
+def perplexity(
+    model: HookedTransformer,
+    logits,
+    clean_logits,
+    input_length,
+    labels,
+    mean=True,
+    loss=True,
+):
     log_probs = F.log_softmax(logits, dim=-1).to(logits.device)
-    label_toks = model.to_tokens(labels, prepend_bos=True, padding_side="left").to(logits.device)
+    label_toks = model.to_tokens(labels, prepend_bos=True, padding_side="left").to(
+        logits.device
+    )
     correct_log_probs = log_probs.gather(dim=-1, index=label_toks.unsqueeze(-1))
     nll = -correct_log_probs.squeeze(-1)
 
     index_mask = torch.zeros_like(nll, dtype=torch.bool)
     str_tokens = model.to_str_tokens(labels)
-    equal_sign_pos = torch.LongTensor(list(map(get_equal_pos, str_tokens))).to(logits.device)
+    equal_sign_pos = torch.LongTensor(list(map(get_equal_pos, str_tokens))).to(
+        logits.device
+    )
 
     for i in range(logits.shape[0]):
-        index_mask[i, equal_sign_pos[i]:logits.shape[1]-1] = 1
+        index_mask[i, equal_sign_pos[i] : logits.shape[1] - 1] = 1
 
     nll = nll * index_mask.float()
 
     mean_nll = nll.sum(dim=-1) / index_mask.sum(dim=-1)
-    perplexity = torch.exp(mean_nll).mean()
+    perplexity = mean_nll.mean()
     return perplexity
 
 
@@ -106,18 +161,20 @@ if __name__ == "__main__":
     data_dict = {
         "clean": clean_strings,
         "corrupted": corrupted_strings,
-        "label": clean_strings
+        "label": clean_strings,
     }
     df = pd.DataFrame(data_dict)
 
+    print("Op1", opts.dig1, "Op2", opts.dig2)
     print("Number of patching data points:", len(df))
     print("Batch size:", opts.batch_size)
 
-
     eap_ds = EAPDataset(df)
-    dataloader = eap_ds.to_dataloader(opts.batch_size)
 
     model = HookedTransformer.from_pretrained(opts.model_name, n_devices=1)
+
+    collator = partial(collate_fn_arithmetic, model)
+    dataloader = eap_ds.to_dataloader(opts.batch_size, collate_fn=collator)
 
     model.cfg.use_split_qkv_input = True
     model.cfg.use_attn_result = True
@@ -125,7 +182,7 @@ if __name__ == "__main__":
 
     g = Graph.from_model(model)
     attribute(model, g, dataloader, partial(metric, model), method="EAP-IG", ig_steps=5)
-    g.apply_topn(100, absolute=True)
+    g.apply_topn(200, absolute=True)
     g.to_json(f"{opts.ofname}.json")
     g.prune_dead_nodes()
     g.to_json(f"{opts.ofname}-pruned.json")
