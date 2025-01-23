@@ -202,7 +202,7 @@ class ArithDataset(Dataset):
         """
         ## remove all few-shot examples ##
         result = result.strip()
-        response = result.split("\n")[self.shots - 1]
+        response = result.split("\n")[self.shots]
 
         op1, op2, ans = self._parse_eq(response)
 

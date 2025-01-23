@@ -59,7 +59,7 @@ if __name__ == "__main__":
         for dig2 in tqdm.tqdm(range(1, 9)):
             dataset = ArithDataset(op)
             dataset.arith_probs(dig1, dig2, opts.num)
-            dataset.to_str(shots=opts.shots)
+            dataset.to_str(shots=opts.shots, add_ans=False)
             dataset.tok_probs(model)
             loader = DataLoader(dataset, batch_size=opts.batch_size)
             out_texts = eval_pass(model, loader)
