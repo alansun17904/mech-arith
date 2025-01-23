@@ -23,6 +23,7 @@ def seed_everything(seed: int = 42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_name", type=str, help="model")
@@ -34,14 +35,13 @@ def parse_args():
     parser.add_argument("--shots", type=int, help="few-shot prompting", default=3)
     return parser.parse_args()
 
+
 @torch.inference_mode()
 def eval_pass(model, dataloader):
     model.eval()
     out_texts = []
     for input_token, attn_mask in dataloader:
-        outputs = model.generate(
-            input_token, max_new_tokens=15, verbose=False
-        )
+        outputs = model.generate(input_token, max_new_tokens=15, verbose=False)
         decoded_texts = model.to_string(outputs)
         out_texts.extend(decoded_texts)
     return out_texts
