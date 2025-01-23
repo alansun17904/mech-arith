@@ -28,6 +28,10 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_name", type=str, help="model")
     parser.add_argument("ofname", type=str, help="output filename")
+    parser.add_argument("--no_not", action="store_true")
+    parser.add_argument("--no_and", action="store_true")
+    parser.add_argument("--no_or", action="store_true")
+    parser.add_argument("--allow_parentheses", action="store_true")
     parser.add_argument("--batch_size", type=int, help="batch size", default=32)
     parser.add_argument("--seed", type=int, help="random seed", default=42)
     parser.add_argument("--num", type=int, help="num problems", default=1000)
@@ -48,24 +52,30 @@ def eval_pass(model, dataloader):
     	last_logits_tf = logits[:,-1,[f_token, t_token]]
     	predict = torch.argmax(last_logits_tf, dim=1)
     	correct += sum([labels[i] == predict[i] for i in range(len(labels))])
-    return correct / total
+    return correct / total, total
 
 if __name__ == "__main__":
-	opts = parse_args()
-	seed_everything(opts.seed)
+    opts = parse_args()
+    seed_everything(opts.seed)
 
-	model = HookedTransformer.from_pretrained(opts.model_name, n_devices=1)
+    model = HookedTransformer.from_pretrained(opts.model_name, n_devices=1, trust_remote_code=True)
 
-	d = dict()
+    d = dict()
 
-	for i in range(3, 10):
-		bd = BooleanDataset(expression_lengths=i, allow_parentheses=False)
-		bd.bool_probs()
-		bd.to_str(shots=3)
-		bd.tok_probs(model)
-		dl = DataLoader(bd, batch_size=opts.batch_size)
+    unary = tuple() if opts.no_not else ("not",)
+    binary_ops = tuple() if opts.no_and else ("and",)
+    binary_ops = binary_ops if opts.no_or else binary_ops + ("or",)
 
-		d[i] = eval_pass(model, dl)
-		print(i, "digits", "accuracy:", d[i])
+    print("unary ops", unary, "binary_ops", binary_ops)
 
-	pickle.dump(d, open(f"{opts.ofname}-benchmark.pkl", "wb+"))
+    for i in range(3, 10):
+        bd = BooleanDataset(expression_lengths=i, unary_ops=unary, binary_ops=binary_ops, allow_parentheses=opts.allow_parentheses)
+        bd.bool_probs()
+        bd.to_str(shots=3)
+        bd.tok_probs(model)
+        dl = DataLoader(bd, batch_size=opts.batch_size)
+
+        d[i] = eval_pass(model, dl)
+        print(i, "expressions", "accuracy:", d[i][0], "total", d[i][1])
+
+    pickle.dump(d, open(f"{opts.ofname}-benchmark.pkl", "wb+"))
