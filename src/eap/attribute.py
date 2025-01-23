@@ -40,7 +40,6 @@ def make_hooks_and_matrices(
         dtype=model.cfg.dtype,
     )
 
-
     processed_attn_layers = set()
     fwd_hooks_clean = []
     fwd_hooks_corrupted = []
@@ -224,7 +223,6 @@ def get_scores_eap_ig(
         batch_size = len(clean_tokens)
         total_items += batch_size
 
-
         (
             fwd_hooks_corrupted,
             fwd_hooks_clean,
@@ -367,7 +365,6 @@ def get_scores_ig_activations(
 
         batch_size = len(clean_tokens)
         total_items += batch_size
-
 
         detach = bool(ablate_all_at_once)
         (_, _, bwd_hooks), activation_difference = make_hooks_and_matrices(

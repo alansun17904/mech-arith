@@ -76,24 +76,23 @@ if __name__ == "__main__":
 
     print("unary ops", unary, "binary_ops", binary_ops)
 
-    bd = BooleanDataset(
-        expression_lengths=5,
-        unary_ops=unary,
-        binary_ops=binary_ops,
-        allow_parentheses=opts.allow_parentheses,
-        parenthetical_depth=opts.depth,
-    )
-    bd.bool_probs()
-    bd.to_str(shots=3)
-    print("\n".join(bd.prompts))
-    print(len(bd.prompts))
-    # bd.tok_probs(model)
+    for i in range(3, 10):
+        bd = BooleanDataset(
+            expression_lengths=i,
+            unary_ops=unary,
+            binary_ops=binary_ops,
+            allow_parentheses=opts.allow_parentheses,
+            parenthetical_depth=opts.depth,
+        )
 
-    # for i in range(3, 10):
+        bd.bool_probs()
+        bd.to_str(shots=3)
+        bd.tok_probs(model)
 
-    #     dl = DataLoader(bd, batch_size=opts.batch_size)
+        dl = DataLoader(bd, batch_size=opts.batch_size)
 
-    #     d[i] = eval_pass(model, dl)
-    #     print(i, "expressions", "accuracy:", d[i][0], "total", d[i][1])
+        d[i] = eval_pass(model, dl)
 
-    # pickle.dump(d, open(f"{opts.ofname}-benchmark.pkl", "wb+"))
+        print(i, "expressions", "accuracy:", d[i][0], "total", d[i][1])
+
+    pickle.dump(d, open(f"{opts.ofname}-benchmark.pkl", "wb+"))

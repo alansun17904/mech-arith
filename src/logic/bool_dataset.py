@@ -88,7 +88,9 @@ class BooleanDataset(Dataset):
     def _is_valid(self, expression: tuple, open_parentheses: int) -> bool:
         return open_parentheses == 0 and expression[-1] in self._end
 
-    def _yield_expression(self, length: int, prefix: tuple = ("start",), depth=0, ns=30):
+    def _yield_expression(
+        self, length: int, prefix: tuple = ("start",), depth=0, ns=30
+    ):
         if length == 0:
             prefix = prefix[1:]
             if self._is_valid(prefix, 0):
@@ -121,7 +123,11 @@ class BooleanDataset(Dataset):
 
         end_idxs = [len(new_expression)]
         for i in range(start + 1, len(new_expression)):
-            if new_expression[i] not in self.unary_ops and new_expression[i] not in self.constants and new_expression[i] != "(":
+            if (
+                new_expression[i] not in self.unary_ops
+                and new_expression[i] not in self.constants
+                and new_expression[i] != "("
+            ):
                 end_idxs.append(i + 1)
         new_expression.insert(random.choice(end_idxs), ")")
         return new_expression

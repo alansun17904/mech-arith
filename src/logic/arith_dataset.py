@@ -130,7 +130,10 @@ class ArithDataset(Dataset):
                 [f"{v[0]} {oper} {v[1]} = {v[2]}" for v in few_shots]
             )
             few_shot_header += "\n" if len(few_shot_header) > 0 else ""
-            prompt = few_shot_header + f"{prob[0]} {oper} {prob[1]} = {'' if not add_ans else prob[2]}"
+            prompt = (
+                few_shot_header
+                + f"{prob[0]} {oper} {prob[1]} = {'' if not add_ans else prob[2]}"
+            )
             weights[i] = 1
             prompts.append(prompt)
         self.prompts = prompts
