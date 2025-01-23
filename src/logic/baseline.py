@@ -63,5 +63,5 @@ if __name__ == "__main__":
             dataset.tok_probs(model)
             loader = DataLoader(dataset, batch_size=opts.batch_size)
             out_texts = eval_pass(model, loader)
-            d[(dig1, dig2)] = [dataset.parse_ans(v) for v in out_texts]
+            d[(dig1, dig2)] = [v for v in out_texts]
     pickle.dump(d, open(f"{opts.ofname}-benchmark.pkl", "wb+"))
