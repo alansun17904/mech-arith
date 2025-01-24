@@ -64,6 +64,7 @@ class BooleanDataset(Dataset):
         self.parenthetical_depth = parenthetical_depth
         self.expression_lengths = expression_lengths
         self.constants = constants
+        self.binary_ops = binary_ops
         self.allow_parentheses = allow_parentheses
 
         self._start = set(constants + unary_ops)
@@ -112,10 +113,11 @@ class BooleanDataset(Dataset):
     ):
         # add a start parantheses before first token, "not" tokens,
         # or any constant token.
-        start_idxs = [1]
-        for i in range(1, len(expression)):
+        start_idxs = [0]
+        for i in range(len(expression)):
             if expression[i] in self.unary_ops or expression[i] in self.constants:
-                start_idxs.append(i)
+                if expression[i] not in self.binary_ops:
+                    start_idxs.append(i)
 
         start = random.choice(start_idxs)
         new_expression = list(expression)
@@ -128,8 +130,10 @@ class BooleanDataset(Dataset):
                 and new_expression[i] not in self.constants
                 and new_expression[i] != "("
             ):
-                end_idxs.append(i + 1)
-        new_expression.insert(random.choice(end_idxs), ")")
+                end_idxs.append(i)
+        end = random.choice(end_idxs)
+        new_expression.insert(end, ")")
+
         return new_expression
 
     def _insert_parentheses(self, expression: tuple = ("start",), depth: int = 0):

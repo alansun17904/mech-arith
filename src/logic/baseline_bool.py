@@ -77,13 +77,13 @@ if __name__ == "__main__":
     print("unary ops", unary, "binary_ops", binary_ops)
 
     for i in range(3, 10):
-        for d in range(1, opts.depth + 1):
+        for dp in range(1, opts.depth + 1):
             bd = BooleanDataset(
                 expression_lengths=i,
                 unary_ops=unary,
                 binary_ops=binary_ops,
                 allow_parentheses=opts.allow_parentheses,
-                parenthetical_depth=opts.depth,
+                parenthetical_depth=dp,
             )
 
             bd.bool_probs()
@@ -92,8 +92,8 @@ if __name__ == "__main__":
 
             dl = DataLoader(bd, batch_size=opts.batch_size)
 
-            d[(i, d)] = eval_pass(model, dl)
+            d[(i, dp)] = eval_pass(model, dl)
 
-            print(i, "expressions", "accuracy:", d[(i,d)][0], "total", d[(i,d)][1])
+            print(i, "expressions", "accuracy:", d[(i,dp)][0].item(), "depth", dp, "total", d[(i,dp)][1])
 
     pickle.dump(d, open(f"{opts.ofname}-benchmark.pkl", "wb+"))
