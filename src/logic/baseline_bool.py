@@ -86,7 +86,7 @@ if __name__ == "__main__":
                 parenthetical_depth=dp,
             )
 
-            bd.bool_probs()
+            bd.bool_probs(opts.num)
             bd.to_str(shots=3)
             bd.tok_probs(model)
 
