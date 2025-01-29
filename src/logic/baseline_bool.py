@@ -87,6 +87,10 @@ if __name__ == "__main__":
             )
 
             bd.bool_probs(opts.num)
+            if len(bd.expressions) == 0:
+                print("no possible expressions for this length")
+                d[(i, dp)] = (0, 0)
+                continue
             bd.to_str(shots=3)
             bd.tok_probs(model)
 

@@ -161,10 +161,12 @@ class BooleanDataset(Dataset):
                 )
             )
             # turn into a unique list of expressions
+            print("yielded", len(self.expressions), "expressions")
             unique = set(map(str, self.expressions))
             self.expressions = list(map(eval, unique))
         else:
             self.expressions = list(self._yield_expression(self.expression_lengths))
+            print("yielded", len(self.expressions), "expressions")
         # shuffle and take on the first n
         random.shuffle(self.expressions)
         self.expressions = self.expressions[:n]
