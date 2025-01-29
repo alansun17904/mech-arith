@@ -98,6 +98,15 @@ if __name__ == "__main__":
 
             d[(i, dp)] = eval_pass(model, dl)
 
-            print(i, "expressions", "accuracy:", d[(i,dp)][0].item(), "depth", dp, "total", d[(i,dp)][1])
+            print(
+                i,
+                "expressions",
+                "accuracy:",
+                d[(i, dp)][0].item(),
+                "depth",
+                dp,
+                "total",
+                d[(i, dp)][1],
+            )
 
     pickle.dump(d, open(f"{opts.ofname}-benchmark.pkl", "wb+"))

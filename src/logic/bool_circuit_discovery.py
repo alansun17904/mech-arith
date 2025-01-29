@@ -32,6 +32,7 @@ def seed_everything(seed: int = 42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_name", type=str, help="model")
@@ -42,13 +43,12 @@ def parse_args():
     parser.add_argument("--allow_parentheses", action="store_true")
     parser.add_argument("--batch_size", type=int, help="batch size", default=32)
     parser.add_argument("--exp_length", type=int, help="expression length", default=5)
-    parser.add_argument(
-        "--depth", type=int, help="parenthetical depth", default=3
-    )
+    parser.add_argument("--depth", type=int, help="parenthetical depth", default=3)
     parser.add_argument("--seed", type=int, help="random seed", default=42)
     parser.add_argument("--num", type=int, help="num problems", default=1000)
     parser.add_argument("--shots", type=int, help="few-shot prompting", default=3)
     return parser.parse_args()
+
 
 def collate_fn_bool(model, xs):
     clean, corrupted, labels = zip(*xs)
@@ -75,25 +75,35 @@ def collate_fn_bool(model, xs):
         list(labels),
     )
 
-def metric(model, logits, clean_logits, input_length, labels, t_token, f_token, mean=True, loss=True):
+
+def metric(
+    model,
+    logits,
+    clean_logits,
+    input_length,
+    labels,
+    t_token,
+    f_token,
+    mean=True,
+    loss=True,
+):
     corrupted_logit_tokens = np.where(labels, f_token, t_token)
     clean_logit_tokens = np.where(labels, t_token, f_token)
-    last_token_logits = logits[:,-1,:]
-    last_token_clean_logits = clean_logits[:,-1,:]
+    last_token_logits = logits[:, -1, :]
+    last_token_clean_logits = clean_logits[:, -1, :]
 
     last_token_probs = torch.softmax(last_token_logits, dim=1)
     last_token_clean_probs = torch.softmax(last_token_clean_logits, dim=1)
 
-    last_token_probs_clean = last_token_probs[:,clean_logit_tokens]
-    last_token_probs_corr = last_token_probs[:,corrupted_logit_tokens]
-    last_token_clean_probs_clean = last_token_clean_probs[:,clean_logit_tokens]
-    last_token_clean_probs_corr = last_token_clean_probs[:,corrupted_logit_tokens]
+    last_token_probs_clean = last_token_probs[:, clean_logit_tokens]
+    last_token_probs_corr = last_token_probs[:, corrupted_logit_tokens]
+    last_token_clean_probs_clean = last_token_clean_probs[:, clean_logit_tokens]
+    last_token_clean_probs_corr = last_token_clean_probs[:, corrupted_logit_tokens]
 
-    score = (
-        (last_token_probs_corr - last_token_clean_probs_corr) /
-            (last_token_clean_probs_corr + 1e-5)
-        + (last_token_clean_probs_clean - last_token_probs_clean) /
-            (last_token_probs_clean + 1e-5)
+    score = (last_token_probs_corr - last_token_clean_probs_corr) / (
+        last_token_clean_probs_corr + 1e-5
+    ) + (last_token_clean_probs_clean - last_token_probs_clean) / (
+        last_token_probs_clean + 1e-5
     )
 
     if loss:
@@ -102,8 +112,9 @@ def metric(model, logits, clean_logits, input_length, labels, t_token, f_token, 
         score = torch.mean(score)
     return score
 
+
 def correct_probs(model, logits, clean_logits, input_length, labels, t_token, f_token):
-    last_logit_tf = logits[:,-1,[f_token, t_token]]
+    last_logit_tf = logits[:, -1, [f_token, t_token]]
     predict = torch.argmax(last_logit_tf, dim=1)
     correct = sum([labels[i] == predict[i] for i in range(len(labels))])
     return correct / len(labels)
@@ -137,7 +148,7 @@ if __name__ == "__main__":
 
     tf_labels = {
         True: [i for i in range(len(clean_labels)) if clean_labels[i]],
-        False: [i for i in range(len(clean_labels)) if not clean_labels[i]]
+        False: [i for i in range(len(clean_labels)) if not clean_labels[i]],
     }
 
     corrupted_prompts = []
@@ -148,7 +159,7 @@ if __name__ == "__main__":
     data_dict = {
         "clean": clean_prompts,
         "corrupted": corrupted_prompts,
-        "label": clean_labels
+        "label": clean_labels,
     }
     df = pd.DataFrame(data_dict)
 
@@ -163,13 +174,29 @@ if __name__ == "__main__":
     t_token, f_token = model.to_single_token("True"), model.to_single_token("False")
 
     g = Graph.from_model(model)
-    attribute(model, g, dataloader, partial(metric, model, t_token=t_token, f_token=f_token), method="EAP-IG", ig_steps=5)
+    attribute(
+        model,
+        g,
+        dataloader,
+        partial(metric, model, t_token=t_token, f_token=f_token),
+        method="EAP-IG",
+        ig_steps=5,
+    )
     g.apply_topn(200, absolute=True)
     g.to_json(f"{opts.ofname}.json")
     g.prune_dead_nodes()
 
-    baseline = evaluate_baseline(model, dataloader, partial(correct_probs, model, t_token=t_token, f_token=f_token))
-    results = evaluate_graph(model, g, dataloader, partial(correct_probs, model, t_token=t_token, f_token=f_token))
+    baseline = evaluate_baseline(
+        model,
+        dataloader,
+        partial(correct_probs, model, t_token=t_token, f_token=f_token),
+    )
+    results = evaluate_graph(
+        model,
+        g,
+        dataloader,
+        partial(correct_probs, model, t_token=t_token, f_token=f_token),
+    )
 
     print("Baseline acc", baseline.mean().item(), "circuit acc", results.mean().item())
 
