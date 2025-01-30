@@ -3,6 +3,7 @@ import sys
 import pickle
 import random
 import argparse
+import json
 from functools import partial
 
 import torch
@@ -60,6 +61,8 @@ if __name__ == "__main__":
         opts.model_name, n_devices=1, trust_remote_code=True
     )
 
+    print("expression_length", opts.exp_length, "depth", opts.depth)
+
     unary = tuple() if opts.no_not else ("not",)
     binary_ops = tuple() if opts.no_and else ("and",)
     binary_ops = binary_ops if opts.no_or else binary_ops + ("or",)
@@ -74,6 +77,28 @@ if __name__ == "__main__":
 
     bd.bool_probs(n=opts.num)
     bd.to_str(shots=3)
+
+    clean_prompts = bd.prompts
+    clean_labels = bd.labels
+
+    tf_labels = {
+        True: [i for i in range(len(clean_labels)) if clean_labels[i]],
+        False: [i for i in range(len(clean_labels)) if not clean_labels[i]],
+    }
+
+    corrupted_prompts = []
+    for i in range(len(clean_prompts)):
+        cf_label_idxs = tf_labels[not clean_labels[i]]
+        cf_prompt_idx = random.choice(cf_label_idxs)
+        corrupted_prompts.append(clean_prompts[cf_prompt_idx])
+    data_dict = {
+        "clean": clean_prompts,
+        "corrupted": corrupted_prompts,
+        "label": clean_labels,
+    }
+    df = pd.DataFrame(data_dict)
+
+    print(df.head())
 
     eap_ds = EAPDataset(df)
     collator = partial(collate_fn_bool, model)
@@ -91,11 +116,15 @@ if __name__ == "__main__":
     n_components = len(g.edges)
     perf = []
     components = []
-    for prct in np.linspace(0, 1, 20):
-        remained_components = int(n_components * prct)
+    for prct in np.logspace(0, np.log10(n_components), 20):
+        remained_components = int(prct)
         components.append(remained_components)
-        g.apply_topn(n_components, absolute=True)
+        g.apply_topn(remained_components, absolute=True)
         g.prune_dead_nodes()
+
+        empty = not g.nodes["logits"].in_graph
+        if empty and prct != 1:
+            continue
 
         result = evaluate_graph(
             model,
@@ -104,7 +133,8 @@ if __name__ == "__main__":
             partial(correct_probs, model, t_token=t_token, f_token=f_token),
         )
         perf.append(result.mean().item())
+        print("n_comps:", remained_components, "result", result.mean().item())
 
     pareto = {"perf": perf, "components": components}
 
-    json.dump(pareto, open(f"{ofname}-pareto.pkl", "wb"))
+    json.dump(pareto, open(f"{opts.ofname}-pareto.json", "w+"))
