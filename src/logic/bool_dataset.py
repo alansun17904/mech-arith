@@ -21,7 +21,6 @@ class BooleanDataset(Dataset):
 
     def __init__(
         self,
-        seed: int = 42,
         expression_lengths: int = 2,
         constants: tuple = ("True", "False"),
         binary_ops: tuple = ("or", "and"),
@@ -45,8 +44,6 @@ class BooleanDataset(Dataset):
             ValueError: if `expression_lengths` contains a number less than 1 or
                 more than 14.
         """
-        random.seed(seed)
-
         min_length, max_length = 1, 14
         if expression_lengths < min_length:
             raise ValueError(
