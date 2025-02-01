@@ -21,7 +21,7 @@ We should process each input one by one and keep track of the stack configuratio
 8: } ; stack: [(
 9: ) ; stack: [
 Now, we have reached the end. The final stack is "[". We will need to pop out "[".
-So, we need "]". So the answer is ]
+So the answer is ]
 
 Q: Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: {[]()}(
 A: Let's think step by step.
@@ -35,11 +35,11 @@ We should process each input one by one and keep track of the stack configuratio
 6: } ; stack: empty
 7: ( ; stack: (
 Now, we have reached the end. The final stack is "(". We will need to pop out "(".
-So, we need ")". So the answer is )
+So the answer is )
 
 Q: Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: {([{}])
 A: Let's think step by step.
-We should process each input one by one and keep track of the stack configuration.\
+We should process each input one by one and keep track of the stack configuration.
 0: empty stack
 1: { ; stack: {
 2: ( ; stack: {(
@@ -49,7 +49,7 @@ We should process each input one by one and keep track of the stack configuratio
 6: ] ; stack: {(
 7: ) ; stack: {
 Now, we have reached the end. The final stack is "{". We will need to pop out "{".
-So, we need "}". So the answer is }
+So the answer is }
 """
 
 
@@ -87,8 +87,8 @@ class DyckDataset(Dataset):
         if not cot:
             if ans:
                 return header + f"{prob_header}{dyck_q}\nA: {dyck_a}\n"
-            return header +  f"{prob_header}{dyck_q}\nA: "
-        return COT + header + "\n" + f"{prob_header}{dyck_q}\nA: Let's think step by step.\n"
+            return header +  f"{prob_header}{dyck_q}\nA:"
+        return COT + "\n\n" + f"{prob_header}{dyck_q}\nA: Let's think step by step.\n"
 
     def to_str(self, shots=0, cot=False):
         """Converts Dyck language completions to their input

@@ -25,7 +25,7 @@ def eval_pass(model, dataloader):
     model.eval()
     out_texts = []
     for input_token, attn_mask in tqdm.tqdm(dataloader):
-        outputs = model.generate(input_token, max_new_tokens=100, verbose=False)
+        outputs = model.generate(input_token, max_new_tokens=300, verbose=False)
         decoded_texts = model.to_string(outputs)
         out_texts.extend(decoded_texts)
     return out_texts

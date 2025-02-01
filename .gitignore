@@ -1,5 +1,6 @@
 # Data files
 src/logic/data
+src/prompting/data
 notebooks/*.pdf
 
 ## Core latex/pdflatex auxiliary files:
