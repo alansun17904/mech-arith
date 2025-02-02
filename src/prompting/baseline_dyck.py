@@ -25,7 +25,7 @@ def eval_pass(model, dataloader):
     model.eval()
     out_texts = []
     for input_token, attn_mask in tqdm.tqdm(dataloader):
-        outputs = model.generate(input_token, max_new_tokens=300, verbose=False)
+        outputs = model.generate(input_token, max_new_tokens=100, verbose=False)
         decoded_texts = model.to_string(outputs)
         out_texts.extend(decoded_texts)
     return out_texts
@@ -37,10 +37,9 @@ if __name__ == "__main__":
     dyck = DyckDataset(n=opts.n, max_length=opts.length)
     dyck.to_str(shots=opts.shots, cot=opts.cot)
 
-    model = HookedTransformer.from_pretrained(opts.model_name, n_devices=2)
+    model = HookedTransformer.from_pretrained(opts.model_name, n_devices=1)
 
     dyck.tok_probs(model)
-    print(len(dyck))
     dl = DataLoader(dyck, batch_size=opts.batch_size, shuffle=False)
 
     out_texts = eval_pass(model, dl)

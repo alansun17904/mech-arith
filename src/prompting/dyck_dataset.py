@@ -7,48 +7,34 @@ from transformer_lens.utils import get_attention_mask
 COT = """\
 Correctly close a Dyck-n word.
 
-Q: Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: [([{}]{})
+Q: Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: [(){}
 A: Let's think step by step.
-We should process each input one by one and keep track of the stack configuration.
 0: empty stack
 1: [ ; stack: [
 2: ( ; stack: [(
-3: [ ; stack: [([
-4: { ; stack: [([{
-5: } ; stack: [([
-6: ] ; stack: [(
-7: { ; stack: [({
-8: } ; stack: [(
-9: ) ; stack: [
-Now, we have reached the end. The final stack is "[". We will need to pop out "[".
+3: ) ; stack: [
+4: { ; stack: [{
+5: } ; stack: [
 So the answer is ]
 
-Q: Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: {[]()}(
+Q: Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: {[]()
 A: Let's think step by step.
-We should process each input one by one and keep track of the stack configuration.
 0: empty stack
 1: { ; stack: {
 2: [ ; stack: {[
 3: ] ; stack: {
 4: ( ; stack: {(
 5: ) ; stack: {
-6: } ; stack: empty
-7: ( ; stack: (
-Now, we have reached the end. The final stack is "(". We will need to pop out "(".
-So the answer is )
+So the answer is }
 
-Q: Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: {([{}])
+Q: Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: {([])
 A: Let's think step by step.
-We should process each input one by one and keep track of the stack configuration.
 0: empty stack
 1: { ; stack: {
 2: ( ; stack: {(
 3: [ ; stack: {([
-4: { ; stack: {([{
-5: } ; stack: {([
-6: ] ; stack: {(
-7: ) ; stack: {
-Now, we have reached the end. The final stack is "{". We will need to pop out "{".
+4: ] ; stack: {(
+5: ) ; stack: {
 So the answer is }
 """
 
@@ -88,7 +74,7 @@ class DyckDataset(Dataset):
             if ans:
                 return header + f"{prob_header}{dyck_q}\nA: {dyck_a}\n"
             return header +  f"{prob_header}{dyck_q}\nA:"
-        return COT + "\n\n" + f"{prob_header}{dyck_q}\nA: Let's think step by step.\n"
+        return COT + "\n" + f"{prob_header}{dyck_q}\nA: Let's think step by step.\n"
 
     def to_str(self, shots=0, cot=False):
         """Converts Dyck language completions to their input
