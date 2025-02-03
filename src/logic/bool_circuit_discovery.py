@@ -112,6 +112,28 @@ def metric(
         score = torch.mean(score)
     return score
 
+def kl_metric(
+    model,
+    logits,
+    clean_logits,
+    input_length,
+    labels,
+    t_token,
+    f_token,
+    mean=True,
+    loss=True,
+):
+    last_token_logits = logits[:, -1, :]
+    last_token_clean_logits = clean_logits[:, -1, :]
+
+    probs = torch.softmax(last_token_logits, dim=-1)
+    clean_probs = torch.softmax(last_token_clean_logits, dim=-1)
+    results = F.kl_div(
+        probs.log(), clean_probs.log(), log_target=True, reduction="none"
+    ).mean(-1)
+    return results.mean() if mean else results
+
+
 
 def correct_probs(model, logits, clean_logits, input_length, labels, t_token, f_token):
     last_logit_tf = logits[:, -1, [f_token, t_token]]
@@ -178,7 +200,7 @@ if __name__ == "__main__":
         model,
         g,
         dataloader,
-        partial(metric, model, t_token=t_token, f_token=f_token),
+        partial(kl_metric, model, t_token=t_token, f_token=f_token),
         method="EAP-IG",
         ig_steps=5,
     )

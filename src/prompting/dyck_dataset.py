@@ -9,6 +9,7 @@ Correctly close a Dyck-n word.
 
 Q: Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: [(){}
 A: Let's think step by step.
+We should process each input one by one and keep track of the stack configuration.
 0: empty stack
 1: [ ; stack: [
 2: ( ; stack: [(
@@ -19,6 +20,7 @@ So the answer is ]
 
 Q: Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: {[]()
 A: Let's think step by step.
+We should process each input one by one and keep track of the stack configuration.
 0: empty stack
 1: { ; stack: {
 2: [ ; stack: {[
@@ -29,6 +31,7 @@ So the answer is }
 
 Q: Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: {([])
 A: Let's think step by step.
+We should process each input one by one and keep track of the stack configuration.
 0: empty stack
 1: { ; stack: {
 2: ( ; stack: {(
@@ -74,7 +77,7 @@ class DyckDataset(Dataset):
             if ans:
                 return header + f"{prob_header}{dyck_q}\nA: {dyck_a}\n"
             return header +  f"{prob_header}{dyck_q}\nA:"
-        return COT + "\n" + f"{prob_header}{dyck_q}\nA: Let's think step by step.\n"
+        return COT + "\n" + f"{prob_header}{dyck_q}\nA: Let's think step by step.\nWe should process each input one by one and keep track of the stack configuration.\n"
 
     def to_str(self, shots=0, cot=False):
         """Converts Dyck language completions to their input

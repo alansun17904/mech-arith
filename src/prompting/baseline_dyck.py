@@ -37,7 +37,7 @@ if __name__ == "__main__":
     dyck = DyckDataset(n=opts.n, max_length=opts.length)
     dyck.to_str(shots=opts.shots, cot=opts.cot)
 
-    model = HookedTransformer.from_pretrained(opts.model_name, n_devices=1)
+    model = HookedTransformer.from_pretrained(opts.model_name, n_devices=2)
 
     dyck.tok_probs(model)
     dl = DataLoader(dyck, batch_size=opts.batch_size, shuffle=False)

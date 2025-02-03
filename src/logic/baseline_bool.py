@@ -35,7 +35,7 @@ def parse_args():
     parser.add_argument("--allow_parentheses", action="store_true")
     parser.add_argument("--batch_size", type=int, help="batch size", default=32)
     parser.add_argument(
-        "--depth", type=int, help="maximum parenthetical depth", default=3
+        "--depth", type=int, help="maximum parenthetical depth", default=6
     )
     parser.add_argument("--seed", type=int, help="random seed", default=42)
     parser.add_argument("--num", type=int, help="num problems", default=1000)
@@ -57,7 +57,7 @@ def eval_pass(model, dataloader):
         last_logits_tf = logits[:, -1, [f_token, t_token]]
         predict = torch.argmax(last_logits_tf, dim=1)
         correct += sum([labels[i] == predict[i] for i in range(len(labels))])
-    return correct / total, total
+    return (correct / total).item(), total
 
 
 if __name__ == "__main__":
@@ -102,7 +102,7 @@ if __name__ == "__main__":
                 i,
                 "expressions",
                 "accuracy:",
-                d[(i, dp)][0].item(),
+                d[(i, dp)][0],
                 "depth",
                 dp,
                 "total",
