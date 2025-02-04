@@ -65,7 +65,7 @@ if __name__ == "__main__":
     seed_everything(opts.seed)
 
     model = HookedTransformer.from_pretrained(
-        opts.model_name, n_devices=1, trust_remote_code=True
+        opts.model_name, n_devices=2, trust_remote_code=True
     )
 
     d = dict()

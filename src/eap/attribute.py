@@ -254,7 +254,7 @@ def get_scores_eap_ig(
                     input_activations_clean - input_activations_corrupted
                 )
                 new_input.requires_grad = True
-                return new_input
+                return new_input.to(activations.device)
 
             return hook_fn
 
@@ -267,6 +267,7 @@ def get_scores_eap_ig(
                 ],
                 bwd_hooks=bwd_hooks,
             ):
+                clean_tokens = clean_tokens.to(model.cfg.device)
                 logits = model(clean_tokens, attention_mask=attention_mask)
                 metric_value = metric(logits, clean_logits, input_lengths, label)
                 metric_value.backward()

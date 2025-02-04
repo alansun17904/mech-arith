@@ -39,7 +39,7 @@ def parse_args():
     parser.add_argument("model_name", type=str, help="model")
     parser.add_argument("ofname", type=str, help="output filename")
     parser.add_argument("in_fname", type=str, help="input filename")
-    parser.add_argument("--psize", type=int, help="partition size as a percentage", default=0.1))
+    parser.add_argument("--psize", type=int, help="partition size as a percentage", default=0.1)
     parser.add_argument("--batch_size", type=int, help="batch size", default=8)
     parser.add_argument("--seed", type=int, help="random seed", default=37)
     return parser.parse_args()
@@ -81,7 +81,7 @@ def metric(
     loss=True,
 ):
     bs, npos, dvocab = logits.shape
-    starting_pos = npos - torch.LongTensor(input_length).to(
+    starting_pos = (npos - input_length).to(
         logits.device
     )
     pos_ids = torch.arange(npos, device=logits.device).unsqueeze(0).expand(bs, -1)
@@ -118,7 +118,7 @@ def perplexity(
 
     index_mask = torch.zeros_like(nll, dtype=torch.bool)
     str_tokens = model.to_str_tokens(labels)
-    starting_pos = npos - torch.LongTensor(input_length).to(
+    starting_pos = (npos - input_length).to(
         logits.device
     )
 
@@ -132,14 +132,14 @@ def perplexity(
     return perplexity
 
 def get_partitions(clean_strings, psize):
-    for i in range(0, len(clean_strings), len(clean_strings) // psize):
-        yield clean_strings[i:i + len(clean_strings) // psize]
+    for i in range(0, len(clean_strings), int(len(clean_strings) * psize)):
+        yield clean_strings[i:i + int(len(clean_strings) * psize)]
 
 
 if __name__ == "__main__":
     opts = parse_args()
     seed_everything(opts.seed)
-    
+
     in_prompts = json.load(open(opts.in_fname, "r"))
     clean_strings = in_prompts["predictions"]
 
@@ -153,15 +153,15 @@ if __name__ == "__main__":
         corrupted_strings = partition[:]
         random.shuffle(corrupted_strings)
         data_dict = {
-            "clean": clean_strings,
+            "clean": partition,
             "corrupted": corrupted_strings,
-            "label": clean_strings
+            "label": partition
         }
         df = pd.DataFrame(data_dict)
         eap_ds = EAPDataset(df)
         collator = partial(collate_fn, model)
         dataloader = eap_ds.to_dataloader(opts.batch_size, collate_fn=collator)
-        
+
         attribute(model, g, dataloader, partial(metric, model), method="EAP-IG", ig_steps=5)
         g.apply_topn(200, absolute=True)
         g.to_json(f"{opts.ofname}-{i}.json")
