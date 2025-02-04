@@ -36,8 +36,9 @@ def make_hooks_and_matrices(
     """
     activation_difference = torch.zeros(
         (batch_size, n_pos, graph.n_forward, model.cfg.d_model),
-        device="cuda",
         dtype=model.cfg.dtype,
+        device="cpu",
+        pin_memory=True,
     )
 
     processed_attn_layers = set()
