@@ -154,20 +154,30 @@ if __name__ == "__main__":
     binary_ops = tuple() if opts.no_and else ("and",)
     binary_ops = binary_ops if opts.no_or else binary_ops + ("or",)
 
-    bd = BooleanDataset(
-        expression_lengths=opts.exp_length,
-        unary_ops=unary,
-        binary_ops=binary_ops,
-        allow_parentheses=opts.allow_parentheses,
-        parenthetical_depth=opts.depth,
-    )
+    clean_prompts = []
+    clean_labels = []
 
-    bd.bool_probs(n=opts.num)
-    bd.to_str(shots=3)
-
-    clean_prompts = bd.prompts
-    clean_labels = bd.labels
-
+    for i in range(1, opts.exp_length + 1):
+        for j in range(1, opts.depth):
+            bd = BooleanDataset(
+                expression_lengths=i,
+                unary_ops=unary,
+                binary_ops=binary_ops,
+                allow_parentheses=opts.allow_parentheses,
+                parenthetical_depth=j,
+            )
+            bd.bool_probs(n=opts.num)
+            bd.to_str(shots=opts.shots)
+            clean_prompts.extend(bd.prompts)
+            clean_labels.extend(bd.labels)
+    
+    prompt_label = list(zip(clean_prompts, clean_labels))
+    random.shuffle(prompt_label)
+    prompt_label = prompt_label[:opts.num]
+    clean_prompts, clean_labels = zip(*prompt_label)
+    clean_prompts = list(clean_prompts)
+    clean_labels = list(clean_labels)
+    
     tf_labels = {
         True: [i for i in range(len(clean_labels)) if clean_labels[i]],
         False: [i for i in range(len(clean_labels)) if not clean_labels[i]],
