@@ -147,7 +147,7 @@ if __name__ == "__main__":
     seed_everything(opts.seed)
 
     model = HookedTransformer.from_pretrained(
-        opts.model_name, n_devices=1, trust_remote_code=True
+        opts.model_name, n_devices=2, trust_remote_code=True
     )
 
     unary = tuple() if opts.no_not else ("not",)
@@ -178,6 +178,11 @@ if __name__ == "__main__":
     clean_prompts = list(clean_prompts)
     clean_labels = list(clean_labels)
 
+<<<<<<< Updated upstream
+=======
+    print(len(clean_labels), "total prompts")
+
+>>>>>>> Stashed changes
     tf_labels = {
         True: [i for i in range(len(clean_labels)) if clean_labels[i]],
         False: [i for i in range(len(clean_labels)) if not clean_labels[i]],
