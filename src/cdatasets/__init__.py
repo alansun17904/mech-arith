@@ -20,7 +20,7 @@ class DatasetBuilder:
     }
 
     def __init__(self, name):
-        self.cls = self.dataset_ids[name]
+        self.cls = self.ids[name]
         self.params = {}
 
     def set_param(self, name, val):
@@ -31,7 +31,10 @@ class DatasetBuilder:
         return self.cls(**self.params)
 
 
-def get_strategy(name, **kwargs):
+def get_dataset_strategy(name, **kwargs):
+    return DatasetBuilder(name)
+
+def get_prompt_strategy(name, **kwargs):
     if name == "zero-shot":
         return ZeroShot()
     elif name == "few-shot":
@@ -44,7 +47,8 @@ def get_strategy(name, **kwargs):
     )
 
 
-PromptFormatter.get_strategy = get_strategy
+DatasetBuilder.get_strategy = get_dataset_strategy
+PromptFormatter.get_strategy = get_prompt_strategy
 PromptFormatter.ids = {
     "zero-shot": ZeroShot,
     "few-shot": FewShot,

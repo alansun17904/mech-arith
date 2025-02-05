@@ -21,14 +21,14 @@ def parse_args():
     parser.add_argument(
         "--dataset",
         type=str,
-        choices=DatasetBuilder.ids.keys(),
+        choices=list(DatasetBuilder.ids.keys()),
         help="dataset name",
         required=True,
     )
     parser.add_argument(
         "--format",
         type=str,
-        choices=PromptFormatter.ids.keys(),
+        choices=list(PromptFormatter.ids.keys()),
         help="format name",
         required=True,
     )
@@ -37,6 +37,7 @@ def parse_args():
     args = parser.parse_args()
     args.data_params = parse_key_value_pairs(args.data_params)
     args.format_params = parse_key_value_pairs(args.format_params)
+    return args
 
 def parse_key_value_pairs(pairs):
     """Convert a list of key=value strings into a dictionary."""
@@ -45,19 +46,16 @@ def parse_key_value_pairs(pairs):
         if '=' not in pair:
             raise ValueError(f"Invalid argument format: {pair}. Expected key=value.")
         key, value = pair.split("=", 1)
-        # Attempt to convert to int or float if applicable
-        if value.isdigit():
-            params[key] = int(value)
-        else:
-            try:
-                params[key] = float(value)
-            except ValueError:
-                params[key] = value  # Keep as string if conversion fails
+        # Attempt to convert to int or float if applicable\
+        try:
+            params[key] = eval(value)
+        except:
+            params[key] = value
     return params
 
 def make_dataset(dataset_id, dataset_params, formatter_id, formatter_params):
-    db = DatasetBuilder.from_id(dataset_id)
-    formatter = PromptFormatter.from_id(formatter_id, **formatter_params)
+    db = DatasetBuilder.get_strategy(dataset_id)
+    formatter = PromptFormatter.get_strategy(formatter_id, **formatter_params)
     for k, v in dataset_params.items():
         db.set_param(k, v)
     dataset = db.build()
@@ -69,12 +67,13 @@ def make_dataset(dataset_id, dataset_params, formatter_id, formatter_params):
 def eval_pass(model, dataloader):
     model.eval()
     inputs, out_texts, labels = [], [], []
-    for clean_prompt, _, label in dataloader:
-        outputs = model.generate(clean_prompt, max_new_tokens=15, verbose=False)
+    for clean_prompt, _, label in tqdm.tqdm(dataloader):
+        tokens, _, _, _ = clean_prompt
+        outputs = model.generate(tokens, max_new_tokens=15, verbose=False)
         decoded_texts = model.to_string(outputs)
         out_texts.extend(decoded_texts)
         labels.extend(label)
-        inputs.extend(clean_prompt)
+        inputs.extend(model.to_string(tokens))
     return out_texts, labels
 
 
