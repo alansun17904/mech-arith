@@ -16,7 +16,7 @@ from transformer_lens import HookedTransformer, ActivationCache
 from transformer_lens.utils import get_attention_mask
 import torch.nn.functional as F
 
-from .bool_dataset import BooleanDataset
+from ..cdatasets.bool_dataset import BooleanDataset
 from eap.graph import Graph
 from eap.evaluate import evaluate_graph, evaluate_baseline
 from eap.attribute import attribute, tokenize_plus

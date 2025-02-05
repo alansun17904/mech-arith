@@ -5,7 +5,7 @@ import random
 import torch
 from torch.utils.data import DataLoader
 from transformer_lens import HookedTransformer
-from prompting.dyck_dataset import DyckDataset
+from src.cdatasets.dyck_dataset import DyckDataset
 
 
 def parse_args():
@@ -20,6 +20,7 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, help="batch size", default=32)
     return parser.parse_args()
 
+
 @torch.inference_mode()
 def eval_pass(model, dataloader):
     model.eval()
@@ -29,6 +30,7 @@ def eval_pass(model, dataloader):
         decoded_texts = model.to_string(outputs)
         out_texts.extend(decoded_texts)
     return out_texts
+
 
 if __name__ == "__main__":
     opts = parse_args()

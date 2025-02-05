@@ -12,7 +12,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformer_lens import HookedTransformer
 
 from utils import seed_everything
-from logic.bool_dataset import BooleanDataset
+from src.cdatasets.bool_dataset import BooleanDataset
 
 
 def seed_everything(seed: int = 42):

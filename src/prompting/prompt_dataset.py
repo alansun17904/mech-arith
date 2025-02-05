@@ -8,6 +8,7 @@ import json
 import random
 from enum import Enum
 from pathlib import Path
+from abc import ABC, abstractmethod
 from typing import Tuple, List, Dict
 
 import numpy as np
@@ -18,6 +19,9 @@ class TaskDataset(Enum):
     DYCK = (1, "dyck_languages")
     SPORTS = (2, "movie_recommendation")
     MOVIE = (3, "sports_understanding")
+    DATE = (4, "date_understanding")
+    ARITHMETIC = (5, "arithmetic")
+    COMMON = (6, "common_sense")
 
     def __init__(self, id, path):
         self._id = id
@@ -30,12 +34,3 @@ class TaskDataset(Enum):
     @property
     def path(self):
         return self._path
-
-
-class PromptDataset(Dataset):
-    """Dataset of various tasks with different modes of prompting.
-    Generates problems from a given task with any modes of prompting:
-    [Zero-shot, Few-shot, or Chain-of-thought]."""
-
-    def to_str(self, shots: int = 0):
-        ...

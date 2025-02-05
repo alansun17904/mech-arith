@@ -15,7 +15,7 @@ from transformer_lens import HookedTransformer, ActivationCache
 from transformer_lens.utils import get_attention_mask
 import torch.nn.functional as F
 
-from .bool_dataset import BooleanDataset
+from ..cdatasets.bool_dataset import BooleanDataset
 from eap.graph import Graph
 from eap.evaluate import evaluate_graph, evaluate_baseline
 from eap.attribute import attribute, tokenize_plus
@@ -112,6 +112,7 @@ def metric(
         score = torch.mean(score)
     return score
 
+
 def kl_metric(
     model,
     logits,
@@ -132,7 +133,6 @@ def kl_metric(
         probs.log(), clean_probs.log(), log_target=True, reduction="none"
     ).mean(-1)
     return results.mean() if mean else results
-
 
 
 def correct_probs(model, logits, clean_logits, input_length, labels, t_token, f_token):
@@ -170,14 +170,14 @@ if __name__ == "__main__":
             bd.to_str(shots=opts.shots)
             clean_prompts.extend(bd.prompts)
             clean_labels.extend(bd.labels)
-    
+
     prompt_label = list(zip(clean_prompts, clean_labels))
     random.shuffle(prompt_label)
-    prompt_label = prompt_label[:opts.num]
+    prompt_label = prompt_label[: opts.num]
     clean_prompts, clean_labels = zip(*prompt_label)
     clean_prompts = list(clean_prompts)
     clean_labels = list(clean_labels)
-    
+
     tf_labels = {
         True: [i for i in range(len(clean_labels)) if clean_labels[i]],
         False: [i for i in range(len(clean_labels)) if not clean_labels[i]],
