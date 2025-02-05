@@ -6,6 +6,7 @@ class BaseDataset(ABC, Dataset):
     """Dataset of various tasks with different modes of prompting.
     Generates problems from a given task with any modes of prompting:
     [Zero-shot, Few-shot, or Chain-of-thought]."""
+
     def __init__(self):
         self._examples = []
         self._clean_examples = []

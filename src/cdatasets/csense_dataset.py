@@ -48,14 +48,12 @@ PROB_HEADER = "Q: "
 
 
 class CommonSenseDataset(BaseDataset):
-    """A Dyck language task of variable difficulty."""
+    """Common sense question answering task."""
 
     description = "Answer multiple-choice questions using common sense."
     data_file = "commonsense_qa.jsonl"
 
-    def __init__(
-        self, n=1000
-    ):
+    def __init__(self, n=1000):
         super().__init__()
         self.n = n
         self._examples = []
@@ -71,10 +69,7 @@ class CommonSenseDataset(BaseDataset):
             single_target = f"({ex['answerKey']})"
             for choice in ex["question"]["choices"]:
                 single_input += f"\n({choice['label']}) {choice['text']}"
-            self._examples.append({
-                "input": single_input,
-                "target": single_target
-            })
+            self._examples.append({"input": single_input, "target": single_target})
         random.shuffle(self._examples)
         self._examples = self._examples[: self.n]
 
@@ -88,17 +83,24 @@ class CommonSenseDataset(BaseDataset):
             answer_starter = "\nA: Let's think step by step."
         self._clean_examples = [
             formatter.format(
-                task_description=self.description, prompt=v + answer_starter, questions=Qs, answers=As, cot=COT
+                task_description=self.description,
+                prompt=v + answer_starter,
+                questions=Qs,
+                answers=As,
+                cot=COT,
             )
             for v in Qs
         ]
         self._labels = [v["target"] for v in self._examples]
         for i in range(len(self._clean_examples)):
             # for each clean example, get example that has different target
-            diff = list(filter(lambda j: self._labels[j] != self._labels[i], range(len(self._examples))))
-            self._corrupted_examples.append(
-                self._clean_examples[random.choice(diff)]
+            diff = list(
+                filter(
+                    lambda j: self._labels[j] != self._labels[i],
+                    range(len(self._examples)),
+                )
             )
+            self._corrupted_examples.append(self._clean_examples[random.choice(diff)])
 
     def to_dataloader(self, model, batch_size: int, collate_fn=None):
         collate_fn = partial(generic_collate, model)

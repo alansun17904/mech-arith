@@ -1,7 +1,14 @@
+import json
 import random
+import string
+from pathlib import Path
+from functools import partial
 
-from torch.utils.data import Dataset
-from transformer_lens.utils import get_attention_mask
+from .base import BaseDataset
+from .prompts import PromptFormatter
+from .utils import generic_collate
+
+from torch.utils.data import DataLoader
 
 
 COT = """\
@@ -16,93 +23,69 @@ A: Let's think step by step. Santi Cazorla is a soccer player. Touchdown is part
 Q: Is the following sentence plausible? "DeMar DeRozan was called for the goal tend."
 A: Let's think step by step. DeMar DeRozan is an American basketball player. Goal tending is part of basketball. So the answer is yes.
 """
+PROB_HEADER = "Q: "
 
 
-class SportsDataset(Dataset):
-    """A Dyck language task of variable difficulty."""
+class SportsDataset(BaseDataset):
+    """Sports-related common sense reasoning task."""
 
-    def __init__(
-        self, open_brackets="([{", closed_brackets=")]}", n=1000, max_length=15
-    ):
-        self.open_brackets = open_brackets
-        self.closed_brackets = closed_brackets
-        self.max_length = max_length
-        self._closed_dict = {
-            o: c for c, o in zip(self.closed_brackets, self.open_brackets)
-        }
-        self._probs = []
-        for _ in range(n):
-            self._probs.append(self._single_dyck())
+    description = "Determine whether a sports-related sentence is plausible."
+    data_file = "sports_understanding.json"
 
-    def _single_dyck(self):
-        stack = []
-        dyck = random.choice(self.open_brackets)
-        stack.append(self._closed_dict[dyck])
+    def __init__(self, n=1000):
+        super().__init__()
+        self.n = n
+        self._examples = []
+        self._clean_examples = []
+        self._corrupted_examples = []
+        self._labels = []
 
-        while len(dyck) + len(stack) < self.max_length:
-            if len(stack) == 0 or random.random() < 0.5:
-                o = random.choice(self.open_brackets)
-                dyck += o
-                stack.append(self._closed_dict[o])
-            else:
-                dyck += stack.pop()
-        dyck += "".join(stack[::-1])
-        return dyck[:-1], dyck[-1]
+    def get_questions(self):
+        task = json.load(open(Path(__file__).parent / "data" / self.data_file))
+        for ex in task["examples"]:
+            self._examples.append({"input": ex["input"], "target": ex["target"]})
+        random.shuffle(self._examples)
+        self._examples = self._examples[: self.n]
 
-    @classmethod
-    def _single_prompt(cls, dyck_q, dyck_a, cot=False, ans=True):
-        header = "Correctly complete the following Dyck language string.\n"
-        prob_header = "Q: Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: "
-        if not cot:
-            if ans:
-                return header + f"{prob_header}{dyck_q}\nA: {dyck_a}\n"
-            return header + f"{prob_header}{dyck_q}\nA: "
-        return (
-            COT
-            + header
-            + "\n"
-            + f"{prob_header}{dyck_q}\nA: Let's think step by step.\n"
-        )
-
-    def to_str(self, shots=0, cot=False):
-        """Converts Dyck language completions to their input
-        prompts."""
-
-        if cot:
-            shots = 0
-
-        prompts = []
-        labels = []
-        weights = [1 for _ in range(len(self._probs))]
-
-        for i, prob in enumerate(self._probs):
-            if shots:
-                weights[i] = 0
-                few_shots = random.choices(self._probs, weights=weights, k=shots)
-                few_shot_header = "\n".join(
-                    self._single_prompt(v[0], v[1], cot=False, ans=True)
-                    for v in few_shots
+    def format_questions(self, formatter: PromptFormatter):
+        global PROB_HEADER, COT
+        Qs, As = [PROB_HEADER + f"{v['input']}" for v in self._examples], [
+            f"\nA: {v['target']}" for v in self._examples
+        ]
+        answer_starter = "\nA: "
+        if formatter.name == "chain-of-thought":
+            answer_starter = "\nA: Let's think step by step."
+        self._clean_examples = [
+            formatter.format(
+                task_description=self.description,
+                prompt=v + answer_starter,
+                questions=Qs,
+                answers=As,
+                cot=COT,
+            )
+            for v in Qs
+        ]
+        self._labels = [v["target"] for v in self._examples]
+        for i in range(len(self._clean_examples)):
+            # for each clean example, get example that has different target
+            diff = list(
+                filter(
+                    lambda j: self._labels[j] != self._labels[i],
+                    range(len(self._examples)),
                 )
-                few_shot_header += "\n"
-                weights[i] = 1
-            else:
-                few_shot_header = ""
+            )
+            self._corrupted_examples.append(self._clean_examples[random.choice(diff)])
 
-            prompt = self._single_prompt(prob[0], prob[1], cot=cot, ans=False)
-            prompt = few_shot_header + prompt
-            prompts.append(prompt)
-        self.prompts = prompts
-
-    def tok_probs(self, model):
-        self.tokens = model.to_tokens(
-            self.prompts, prepend_bos=True, padding_side="left"
-        )
-        self.attention_mask = get_attention_mask(self.tokens)
-        return self.tokens, self.attention_mask
+    def to_dataloader(self, model, batch_size: int, collate_fn=None):
+        collate_fn = partial(generic_collate, model)
+        return DataLoader(self, batch_size=batch_size, collate_fn=collate_fn)
 
     def __len__(self):
-        assert self.tokens is not None, "No tokens initialized in dataset"
-        return len(self.tokens)
+        return len(self._examples)
 
     def __getitem__(self, idx):
-        return self.tokens[idx], self.attention_mask[idx], self.labels[idx]
+        return (
+            self._clean_examples[idx],
+            self._corrupted_examples[idx],
+            self._labels[idx],
+        )

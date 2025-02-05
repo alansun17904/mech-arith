@@ -1,4 +1,3 @@
-import os
 import json
 import random
 import string
@@ -12,49 +11,56 @@ from .utils import generic_collate
 from torch.utils.data import DataLoader
 
 
-CHOICES = [f"({v})" for v in string.ascii_uppercase]
 COT = """\
-Q: Today is Christmas Eve of 1937. What is the date 10 days ago in MM/DD/YYYY?
+Q: Find a movie similar to Star Wars Episode IV - A New Hope, Indiana Jones and the Last Crusade, Star Wars Episode V - The Empire Strikes Back, The Big Lebowski:
 Options:
-(A) 12/14/2026
-(B) 12/14/1950
-(C) 12/14/2007
-(D) 12/14/1937
-(E) 07/14/1938
-(F) 12/14/1988
+(A) Tetsuo
+(B) the Ironman
+(C) The Princess Bride
+(D) The Barkley Marathons The Race That Eats Its Young
+(E) Bug
 A: Let's think step by step.
-If today is Christmas Eve of 1937, then today's date is December 24, 1937. 10 days before today is December 14, 1937, that is 12/14/1937. So the answer is (D).
+- Star Wars Episode IV - A New Hope (action, adventure, fantasy; 1977)
+- Indiana Jones and the Last Crusade (action, adventure; 1989)
+- Star Wars Episode V - The Empire Strikes Back (action, adventure, fantasy; 1980)
+- The Big Lebowski (action, drama, comedy; 1998)
+These are all famous classic American movies produced before 2000. Amongst all the options, the only movie similar to these ones seems to be The Princess Bride (1987). So the answer is (C).
 
-Q: Tomorrow is 11/12/2019. What is the date one year ago from today in MM/DD/YYYY?
+Q: Find a movie similar to Twister, The Silence of the Lambs, Independence Day, Braveheart:
 Options:
-(A) 09/04/2018
-(B) 11/11/2018
-(C) 08/25/2018
-(D) 11/02/2018
-(E) 11/04/2018
+(A) They Shoot Horses
+(B) Don't They
+(C) Forrest Gump
+(D) The Salton Sea
+(E) Extreme Days
 A: Let's think step by step.
-If tomorrow is 11/12/2019, then today is 11/11/2019. The date one year ago from today is 11/11/2018. So the answer is (B).
+- Twister (action, adventure, thriller; 1996)
+- The Silence of the Lambs (crime, drama, thriller; 1991)
+- Independence Day (action, science-fiction, drama; 1996)
+- Braveheart (biography, drama, epic; 1995)
+These are all famous Hollywood movies produced around the 1990s. Amongst all the options, the only movie similar to these ones seems to be Forrest Gump (comedy, drama, romance; 1994). So the answer is (C).
 
-Q: Jane and John married on Jan 2, 1958. It is their 5-year anniversary today. What is the date tomorrow in MM/DD/YYYY?
+Q: Find a movie similar to Minority Report, Total Recall, Inside Out, Forrest Gump:
 Options:
-(A) 01/11/1961
-(B) 01/03/1963
-(C) 01/18/1961
-(D) 10/14/1960
-(E) 01/03/1982
-(F) 12/03/1960
+(A) Phenomena
+(B) Lilting
+(C) Catwoman
+(D) Edge of Tomorrow
 A: Let's think step by step.
-If Jane and John married on Jan 2, 1958, then and if it is their 5-year anniversary today, then today's date is Jan 2, 1963. The date tomorrow is Jan 3, 1963, that is 01/03/1963. So the answer is (B).
+- Minority Report (action, crime, mystery; 2002)
+- Total Recall (action, adventure, science-fiction; 2012)
+- Inside Out (animation, family, comedy; 2015)
+- Forrest Gump (comedy, drama, romance; 1994)
+These are all famous movies produced in the past few decades. Amongst all the options, the only movie similar to these ones seems to be Edge of Tomorrow (action, adventure, crime, mystery; 2014), as it is also a science-fiction movie and features Tom Cruise. So the answer is (D).\
 """
-
 PROB_HEADER = "Q: "
 
 
-class DateDataset(BaseDataset):
+class MovieDataset(BaseDataset):
     """Date understanding task."""
 
-    description = "Infer the date from context."
-    data_file = "date_understanding.json"
+    description = "Find a movie similar to the given set of movies."
+    data_file = "movie_recommendation.json"
 
     def __init__(self, n=1000):
         super().__init__()
@@ -67,13 +73,7 @@ class DateDataset(BaseDataset):
     def get_questions(self):
         task = json.load(open(Path(__file__).parent / "data" / self.data_file))
         for ex in task["examples"]:
-            single_input = ex["input"] + "\nOptions:"
-            single_target = ""
-            for i, (k, v) in enumerate(ex["target_scores"].items()):
-                single_input += "\n" + f"{CHOICES[i]} {k}"
-                if v == 1:
-                    single_target = CHOICES[i]
-            self._examples.append({"input": single_input, "target": single_target})
+            self._examples.append({"input": ex["input"], "target": ex["target"]})
         random.shuffle(self._examples)
         self._examples = self._examples[: self.n]
 

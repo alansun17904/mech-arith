@@ -191,7 +191,7 @@ class BooleanDataset(BaseDataset):
     def to_dataloader(self, model, batch_size: int, collate_fn=None):
         collate_fn = partial(generic_collate, model)
         return DataLoader(self, batch_size=batch_size, collate_fn=collate_fn)
-    
+
     def __len__(self):
         return len(self._examples)
 

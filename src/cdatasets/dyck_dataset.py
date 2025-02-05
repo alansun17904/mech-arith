@@ -70,10 +70,12 @@ class DyckDataset(BaseDataset):
     def get_questions(self):
         for _ in range(self.n):
             q, a = self._single_dyck()
-            self._examples.append({
-                "input": q,
-                "target": a,
-            })
+            self._examples.append(
+                {
+                    "input": q,
+                    "target": a,
+                }
+            )
 
     def _single_dyck(self):
         stack = []
@@ -100,7 +102,11 @@ class DyckDataset(BaseDataset):
             answer_starter = "\nA: Let's think step by step."
         self._clean_examples = [
             formatter.format(
-                task_description=self.description, prompt=v + answer_starter, questions=Qs, answers=As, cot=COT
+                task_description=self.description,
+                prompt=v + answer_starter,
+                questions=Qs,
+                answers=As,
+                cot=COT,
             )
             for v in Qs
         ]
