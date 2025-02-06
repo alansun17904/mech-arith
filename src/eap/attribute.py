@@ -213,7 +213,7 @@ def get_scores_eap_ig(
     quiet=False,
 ):
     scores = torch.zeros(
-        (graph.n_forward, graph.n_backward), device="cuda", dtype=model.cfg.dtype
+        (graph.n_forward, graph.n_backward), device="cpu", dtype=model.cfg.dtype
     )
 
     total_items = 0

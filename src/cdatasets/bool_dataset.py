@@ -33,6 +33,7 @@ class BooleanDataset(BaseDataset):
         unary_ops: tuple = ("not",),
         allow_parentheses: bool = True,
         parenthetical_depth: int = 1,
+        n=1000
     ):
         super().__init__()
         self.parenthetical_depth = parenthetical_depth
@@ -40,6 +41,7 @@ class BooleanDataset(BaseDataset):
         self.constants = constants
         self.binary_ops = binary_ops
         self.allow_parentheses = allow_parentheses
+        self.n = n
 
         self._examples = []
         self._clean_examples = []
@@ -151,7 +153,7 @@ class BooleanDataset(BaseDataset):
             print("yielded", len(expressions), "expressions")
         # shuffle and take on the first n
         random.shuffle(expressions)
-        expressions = expressions[:n]
+        expressions = expressions[:self.n]
 
         self._examples = [
             {

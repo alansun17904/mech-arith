@@ -22,11 +22,12 @@ class ArithDataset(BaseDataset):
 
     description = "Solve the following arithmetic problems."
 
-    def __init__(self, op, dig1, dig2, n=1000):
+    def __init__(self, op, dig1, dig2, n=1000, append_ans=True):
         super().__init__()
         self.op = op
         self.dig1 = dig1
         self.dig2 = dig2
+        self.append_ans = append_ans
         self.n = n
         self._examples = []
         self._clean_examples = []
@@ -82,7 +83,8 @@ class ArithDataset(BaseDataset):
         ]
         self._clean_examples = [
             formatter.format(
-                self.description, ex["input"] + ex["target"], questions=Qs, answers=As
+                self.description, ex["input"] + 
+                (ex["target"] if self.append_ans else ""), questions=Qs, answers=As
             )
             for ex in self._examples
         ]

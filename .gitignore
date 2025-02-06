@@ -1,5 +1,5 @@
 # Data files
-src/logic/data
+src/experiments/data
 src/prompting/data
 notebooks/*.pdf
 
