@@ -33,9 +33,16 @@ class BooleanDataset(BaseDataset):
         unary_ops: tuple = ("not",),
         allow_parentheses: bool = True,
         parenthetical_depth: int = 1,
+        variable_length: bool = False,
         n=1000
     ):
+        """
+        If variable_length is True, then expressions are sampled from a 
+        variety of lengths and parenthetical depths up to the specified
+        maximums. Otherwise, all expressions are of the same length.
+        """
         super().__init__()
+        self.variable_length = variable_length
         self.parenthetical_depth = parenthetical_depth
         self.expression_lengths = expression_lengths
         self.constants = constants
@@ -139,18 +146,21 @@ class BooleanDataset(BaseDataset):
         Args:
             n (int): the number of problems to generate
         """
-        if self.allow_parentheses:
-            expressions = list(
-                self._yield_expression(
-                    length=self.expression_lengths, depth=self.parenthetical_depth
-                )
-            )
+        if self.variable_length:
+            expressions = []
+            for length in range(2, self.expression_lengths + 1):
+                for depth in range(self.parenthetical_depth + 1):
+                    expressions.extend(
+                        list(
+                            self._yield_expression(length=length, depth=depth if self.allow_parentheses else 0)
+                        )
+                    )
             # turn into a unique list of expressions
-            unique = set(map(str, expressions))
-            expressions = list(map(eval, unique))
         else:
-            expressions = list(self._yield_expression(self.expression_lengths))
-            print("yielded", len(expressions), "expressions")
+            expressions = list(self._yield_expression(self.expression_lengths, depth=self.parenthetical_depth))
+
+        unique = set(map(str, expressions))
+        expressions = list(map(eval, unique))
         # shuffle and take on the first n
         random.shuffle(expressions)
         expressions = expressions[:self.n]

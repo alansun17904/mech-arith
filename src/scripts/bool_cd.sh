@@ -10,4 +10,4 @@ for expl in {3..9}; do
         binary_ops='("and", "or")' unary_ops='("not",)' allow_parentheses=True \
         --format_params shots=3
   done
-done
+done``
