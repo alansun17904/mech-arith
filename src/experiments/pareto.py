@@ -1,12 +1,8 @@
-import os
-import sys
-import pickle
-import random
+import json
 import argparse
-from functools import partial
 
 from cdatasets import DatasetBuilder, PromptFormatter
-from eap import Graph, attribute, evaluate_baseline, evaluate_graph
+from eap import Graph, evaluate_graph
 from .utils import (
     seed_everything,
     parse_key_value_pairs,
@@ -14,10 +10,9 @@ from .utils import (
     get_metric,
     get_extraction,
     extraction_schema,
-    eval_pass,
 )
 
-import torch.nn.functional as F
+import numpy as np
 from transformer_lens import HookedTransformer
 
 
@@ -25,6 +20,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_name", type=str, help="model")
     parser.add_argument("ofname", type=str, help="output filename")
+    parser.add_argument("graph_file", type=str, help="graph with scores after pruning")
     parser.add_argument("--batch_size", type=int, help="batch size", default=32)
     parser.add_argument("--ndevices", type=int, help="number of devices", default=1)
     parser.add_argument("--seed", type=int, help="random seed", default=42)
@@ -66,9 +62,7 @@ if __name__ == "__main__":
 
     pure_metric = get_metric(opts.patching_metric)
     extraction = get_extraction(opts.extraction)
-
-    
-    t_token, f_token = model.to_single_token("True"), model.to_single_token("False")
+    metric = extraction_schema(extraction, model)(pure_metric)
 
     g = Graph.from_json(opts.graph_file)
 
@@ -86,12 +80,7 @@ if __name__ == "__main__":
         if empty and prct != 1:
             continue
 
-        result = evaluate_graph(
-            model,
-            g,
-            dataloader,
-            partial(correct_probs, model, t_token=t_token, f_token=f_token),
-        )
+        result = evaluate_graph(model,g,dataloader, metric)
         perf.append(result.mean().item())
         print("n_comps:", remained_components, "result", result.mean().item())
 

@@ -69,7 +69,9 @@ class DateDataset(BaseDataset):
         for ex in task["examples"]:
             single_input = ex["input"] + "\nOptions:"
             single_target = ""
-            for i, (k, v) in enumerate(ex["target_scores"].items()):
+            targets = list(ex["target_scores"].items())
+            random.shuffle(targets)
+            for i, (k, v) in enumerate(targets):
                 single_input += "\n" + f"{CHOICES[i]} {k}"
                 if v == 1:
                     single_target = CHOICES[i]
