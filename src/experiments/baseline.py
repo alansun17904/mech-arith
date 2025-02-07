@@ -1,9 +1,24 @@
+import os
+import sys
 import pickle
+import random
 import argparse
-from transformer_lens import HookedTransformer
+from functools import partial
 
-from .utils import seed_everything, parse_key_value_pairs, make_dataset, eval_pass
 from cdatasets import DatasetBuilder, PromptFormatter
+from eap import Graph, attribute, evaluate_baseline, evaluate_graph
+from .utils import (
+    seed_everything,
+    parse_key_value_pairs,
+    make_dataset,
+    get_metric,
+    get_extraction,
+    extraction_schema,
+    eval_pass,
+)
+
+import torch.nn.functional as F
+from transformer_lens import HookedTransformer
 
 
 def parse_args():
@@ -38,8 +53,10 @@ def parse_args():
 if __name__ == "__main__":
     opts = parse_args()
     seed_everything(opts.seed)
-    dataset = make_dataset(opts.dataset, opts.data_params, opts.format, opts.format_params)
-    
+    dataset = make_dataset(
+        opts.dataset, opts.data_params, opts.format, opts.format_params
+    )
+
     model = HookedTransformer.from_pretrained(opts.model_name, n_devices=opts.ndevices)
     loader = dataset.to_dataloader(model, opts.batch_size)
 

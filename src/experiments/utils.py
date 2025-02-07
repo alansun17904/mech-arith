@@ -24,7 +24,7 @@ def parse_key_value_pairs(pairs):
     """Convert a list of key=value strings into a dictionary."""
     params = {}
     for pair in pairs:
-        if '=' not in pair:
+        if "=" not in pair:
             raise ValueError(f"Invalid argument format: {pair}. Expected key=value.")
         key, value = pair.split("=", 1)
         # Attempt to convert to int or float if applicable\
@@ -80,7 +80,7 @@ def perplexity(model, logits, clean_logits, input_length, labels):
     """Compute the perplexity of the model's logits given the clean labels.
     It should be that the length of the tokenized labels is equal to the length
     of the logits.
-    
+
     Args:
         model (HookedTransformer)
         logits (torch.Tensor: [batch, seq_len, vocab_size])
@@ -99,9 +99,13 @@ def extraction_schema(extract_fn, model, **kwargs):
     def decorator(metric_fn):
         @wraps(metric_fn)
         def wrapper(logits, clean_logits, input_length, labels, model=model):
-            logits, clean_logits, labels = extract_fn(model, logits, clean_logits, input_length, labels, **kwargs)
+            logits, clean_logits, labels = extract_fn(
+                model, logits, clean_logits, input_length, labels, **kwargs
+            )
             return metric_fn(model, logits, clean_logits, input_length, labels)
+
         return wrapper
+
     return decorator
 
 
@@ -112,6 +116,7 @@ def extract_last_token(model, logits, clean_logits, input_length, labels):
 
 def extract_equal_sign(model, logits, clean_logits, input_length, labels):
     """Extract the logits from the equal sign to the end of the sequence."""
+
     def get_equal_pos(str_tokens):
         for i in range(len(str_tokens) - 1, -1, -1):
             if "=" in str_tokens[i]:

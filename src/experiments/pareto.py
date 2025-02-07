@@ -38,19 +38,30 @@ def seed_everything(seed: int = 42):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_name", type=str, help="model")
-    parser.add_argument("graph_file", type=str, help="graph")
     parser.add_argument("ofname", type=str, help="output filename")
-    parser.add_argument("--no_not", action="store_true")
-    parser.add_argument("--no_and", action="store_true")
-    parser.add_argument("--no_or", action="store_true")
-    parser.add_argument("--allow_parentheses", action="store_true")
     parser.add_argument("--batch_size", type=int, help="batch size", default=32)
-    parser.add_argument("--exp_length", type=int, help="expression length", default=5)
-    parser.add_argument("--depth", type=int, help="parenthetical depth", default=3)
+    parser.add_argument("--ndevices", type=int, help="number of devices", default=1)
     parser.add_argument("--seed", type=int, help="random seed", default=42)
-    parser.add_argument("--num", type=int, help="num problems", default=1000)
-    parser.add_argument("--shots", type=int, help="few-shot prompting", default=3)
-    return parser.parse_args()
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        choices=list(DatasetBuilder.ids.keys()),
+        help="dataset name",
+        required=True,
+    )
+    parser.add_argument(
+        "--format",
+        type=str,
+        choices=list(PromptFormatter.ids.keys()),
+        help="format name",
+        required=True,
+    )
+    parser.add_argument("--data_params", nargs="*", default=[], help="dataset params")
+    parser.add_argument("--format_params", nargs="*", default=[], help="format params")
+    args = parser.parse_args()
+    args.data_params = parse_key_value_pairs(args.data_params)
+    args.format_params = parse_key_value_pairs(args.format_params)
+    return args
 
 
 if __name__ == "__main__":

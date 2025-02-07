@@ -34,10 +34,10 @@ class BooleanDataset(BaseDataset):
         allow_parentheses: bool = True,
         parenthetical_depth: int = 1,
         variable_length: bool = False,
-        n=1000
+        n=1000,
     ):
         """
-        If variable_length is True, then expressions are sampled from a 
+        If variable_length is True, then expressions are sampled from a
         variety of lengths and parenthetical depths up to the specified
         maximums. Otherwise, all expressions are of the same length.
         """
@@ -152,18 +152,25 @@ class BooleanDataset(BaseDataset):
                 for depth in range(self.parenthetical_depth + 1):
                     expressions.extend(
                         list(
-                            self._yield_expression(length=length, depth=depth if self.allow_parentheses else 0)
+                            self._yield_expression(
+                                length=length,
+                                depth=depth if self.allow_parentheses else 0,
+                            )
                         )
                     )
             # turn into a unique list of expressions
         else:
-            expressions = list(self._yield_expression(self.expression_lengths, depth=self.parenthetical_depth))
+            expressions = list(
+                self._yield_expression(
+                    self.expression_lengths, depth=self.parenthetical_depth
+                )
+            )
 
         unique = set(map(str, expressions))
         expressions = list(map(eval, unique))
         # shuffle and take on the first n
         random.shuffle(expressions)
-        expressions = expressions[:self.n]
+        expressions = expressions[: self.n]
 
         self._examples = [
             {

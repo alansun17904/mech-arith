@@ -83,8 +83,10 @@ class ArithDataset(BaseDataset):
         ]
         self._clean_examples = [
             formatter.format(
-                self.description, ex["input"] + 
-                (ex["target"] if self.append_ans else ""), questions=Qs, answers=As
+                self.description,
+                ex["input"] + (ex["target"] if self.append_ans else ""),
+                questions=Qs,
+                answers=As,
             )
             for ex in self._examples
         ]

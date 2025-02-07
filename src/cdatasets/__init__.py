@@ -34,6 +34,7 @@ class DatasetBuilder:
 def get_dataset_strategy(name, **kwargs):
     return DatasetBuilder(name)
 
+
 def get_prompt_strategy(name, **kwargs):
     if name == "zero-shot":
         return ZeroShot()
