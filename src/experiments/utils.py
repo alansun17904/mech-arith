@@ -47,12 +47,12 @@ def make_dataset(dataset_id, dataset_params, formatter_id, formatter_params):
 
 
 @torch.inference_mode()
-def eval_pass(model, dataloader):
+def eval_pass(model, dataloader, max_new_tokens=15):
     model.eval()
     inputs, out_texts, labels = [], [], []
     for clean_prompt, _, label in tqdm.tqdm(dataloader):
         tokens, _, _, _ = clean_prompt
-        outputs = model.generate(tokens, max_new_tokens=15, verbose=False)
+        outputs = model.generate(tokens, max_new_tokens=max_new_tokens, verbose=False)
         decoded_texts = model.to_string(outputs)
         out_texts.extend(decoded_texts)
         labels.extend(label)

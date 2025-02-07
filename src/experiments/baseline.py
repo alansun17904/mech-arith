@@ -28,6 +28,7 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, help="batch size", default=32)
     parser.add_argument("--ndevices", type=int, help="number of devices", default=1)
     parser.add_argument("--seed", type=int, help="random seed", default=42)
+    parser.add_argument("--max_new_tokens", type=int, help="max new tokens", default=15)
     parser.add_argument(
         "--dataset",
         type=str,
