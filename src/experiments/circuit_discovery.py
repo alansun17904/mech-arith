@@ -60,11 +60,11 @@ if __name__ == "__main__":
     pure_metric = get_metric(opts.patching_metric)
     extraction = get_extraction(opts.extraction)
 
-    metric = extraction_schema(extraction)(pure_metric)
+    metric = extraction_schema(extraction, model)(pure_metric)
 
     g = Graph.from_model(model)
     attribute(model, g, dataloader, metric, method="EAP-IG", ig_steps=opts.ig_steps)
-    g.apply_topn(200, absolute=True)
+    g.apply_topn(200, absolute=False)
     g.to_json(f"{opts.ofname}.json")
     g.prune_dead_nodes()
 

@@ -95,10 +95,10 @@ def perplexity(model, logits, clean_logits, input_length, labels):
     return nll.mean()
 
 
-def extraction_schema(extract_fn, **kwargs):
+def extraction_schema(extract_fn, model, **kwargs):
     def decorator(metric_fn):
         @wraps(metric_fn)
-        def wrapper(model, logits, clean_logits, input_length, labels):
+        def wrapper(logits, clean_logits, input_length, labels, model=model):
             logits, clean_logits, labels = extract_fn(model, logits, clean_logits, input_length, labels, **kwargs)
             return metric_fn(model, logits, clean_logits, input_length, labels)
         return wrapper

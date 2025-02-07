@@ -62,13 +62,13 @@ def evaluate_graph(
         def input_construction_hook(activations, hook):
             if attn:
                 update = einsum(
-                    activation_differences[:, :, : len(in_graph_vector)],
+                    activation_differences[:, :, : len(in_graph_vector)].to(activations.device),
                     in_graph_vector,
                     "batch pos previous hidden, previous head -> batch pos head hidden",
                 )
             else:
                 update = einsum(
-                    activation_differences[:, :, : len(in_graph_vector)],
+                    activation_differences[:, :, : len(in_graph_vector)].to(activations.device),
                     in_graph_vector,
                     "batch pos previous hidden, previous -> batch pos hidden",
                 )
