@@ -15,6 +15,7 @@ from .utils import (
     get_extraction,
     extraction_schema,
     eval_pass,
+    eval_choice
 )
 
 import torch.nn.functional as F
@@ -61,7 +62,10 @@ if __name__ == "__main__":
     model = HookedTransformer.from_pretrained(opts.model_name, n_devices=opts.ndevices)
     loader = dataset.to_dataloader(model, opts.batch_size)
 
-    inputs, out_texts, labels = eval_pass(model, loader)
+    if model.choices:
+        inputs, out_texts, labels = eval_choice(model, loader, dataset.choices)
+    else:
+        inputs, out_texts, labels = eval_pass(model, loader, opts.max_new_tokens)
     d = {
         "input": inputs,
         "output": out_texts,

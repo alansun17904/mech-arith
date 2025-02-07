@@ -16,32 +16,32 @@ CHOICES = [f"({v})" for v in string.ascii_uppercase]
 COT = """\
 Q: Where would someone most likely go to enjoy hiking?
 Options:
-(A) supermarket
-(B) apartment
-(C) museum
-(D) mountain trail
-(E) bank
+A supermarket
+B apartment
+C museum
+D mountain trail
+E bank
 A: Let's think step by step.
 A supermarket is for shopping not hiking. An apartment is where people live not hiking. A museum is for viewing exhibits not hiking. A mountain trail is a natural location for hiking. A bank is for financial transactions not hiking. So the answer is (D).
 
 Q: If someone wanted to attend a celebration, where would they most likely go?
 Options:
-(A) hospital
-(B) library
-(C) party
-(D) graveyard
-(E) office
+A hospital
+B library
+C party
+D graveyard
+E office
 A: Let's think step by step.
-A hospital is for medical treatment not celebrations. A library is for reading and studying not celebrations. A party is a social gathering for celebrations. A graveyard is a burial ground not for celebrations. An office is a workplace not for celebrations. So the answer is (C).
+A hospital is for medical treatment not celebrations. A library is for reading and studying not celebrations. A party is a social gathering for celebrations. A graveyard is a burial ground not for celebrations. An office is a workplace not for celebrations. So the answer is C.
 
 Q: If someone wanted to write something down, where would they most likely write it?
-(A) basketball court
-(B) notebook
-(C) stadium
-(D) kitchen
-(E) garage
+A basketball court
+B notebook
+C stadium
+D kitchen
+E garage
 A: Let's think step by step.
-A basketball course is for playing basketball not writing. A notebook is a place to write things down. A stadium is for sports events not writing. A kitchen is for cooking not writing. A garage is for parking cars not writing. So the answer is (B).
+A basketball course is for playing basketball not writing. A notebook is a place to write things down. A stadium is for sports events not writing. A kitchen is for cooking not writing. A garage is for parking cars not writing. So the answer is B.
 """
 
 PROB_HEADER = "Q: "

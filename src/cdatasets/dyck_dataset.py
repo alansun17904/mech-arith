@@ -50,6 +50,7 @@ class DyckDataset(BaseDataset):
     """A Dyck language task of variable difficulty."""
 
     description = "Correctly close a Dyck-n word."
+    choices = [")", "}", "]"]
 
     def __init__(
         self, open_brackets="([{", closed_brackets=")]}", n=1000, max_length=15

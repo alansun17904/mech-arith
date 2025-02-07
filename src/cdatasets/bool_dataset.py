@@ -24,6 +24,7 @@ class BooleanDataset(BaseDataset):
     """A boolean expression task of variable difficulty."""
 
     description = "Evaluate Boolean expressions."
+    choices = ["True", "False"]
 
     def __init__(
         self,

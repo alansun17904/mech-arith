@@ -60,6 +60,23 @@ def eval_pass(model, dataloader, max_new_tokens=15):
     return inputs, out_texts, labels
 
 
+@torch.inference_mode()
+def eval_choice(model, dataloader, choices):
+    model.eval()
+    inputs, out_texts, labels = [], [], []
+    choice_logit_idxs = [model.to_single_token(c) for c in choices]
+    idx2choice = {i: c for i, c in enumerate(choices)}
+    for clean_prompt, _, label in tqdm.tqdm(dataloader):
+        tokens, _, _, _ = clean_prompt
+        outputs = model(tokens)
+        logits = outputs[:,-1, choice_logit_idxs]
+        probs = F.softmax(logits, dim=-1)
+        answers = [idx2choice[i] for i in probs.argmax(dim=-1)]
+        out_texts.extend(answers)
+        labels.extend(label)
+        inputs.extend(model.to_string(tokens))
+
+
 def kl_metric(model, logits, clean_logits, input_length, labels):
     """Compute the KL divergence between the model's logits and the clean logits.
     Here the clean logits are taken as the target distribution.
