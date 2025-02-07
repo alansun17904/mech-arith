@@ -3,7 +3,7 @@
 mkdir -p "experiments/data/precedence"
 export ROOT="experiments/data/precedence"
 export MODEL="phi-1_5"
-export BATCH_SIZE=16
+export BATCH_SIZE=8
 
 # No parentheses
 for seed in {1..9}; do
