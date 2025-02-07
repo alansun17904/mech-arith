@@ -37,8 +37,7 @@ def make_hooks_and_matrices(
     activation_difference = torch.zeros(
         (batch_size, n_pos, graph.n_forward, model.cfg.d_model),
         dtype=model.cfg.dtype,
-        device="cpu",
-        pin_memory=True,
+        device="cuda",
     )
 
     processed_attn_layers = set()
@@ -213,7 +212,7 @@ def get_scores_eap_ig(
     quiet=False,
 ):
     scores = torch.zeros(
-        (graph.n_forward, graph.n_backward), device="cpu", dtype=model.cfg.dtype
+        (graph.n_forward, graph.n_backward), device="cuda", dtype=model.cfg.dtype
     )
 
     total_items = 0
