@@ -37,7 +37,8 @@ def make_hooks_and_matrices(
     activation_difference = torch.zeros(
         (batch_size, n_pos, graph.n_forward, model.cfg.d_model),
         dtype=model.cfg.dtype,
-        device="cuda",
+        device="cpu",
+        pin_memory=True
     )
 
     processed_attn_layers = set()
@@ -81,7 +82,7 @@ def make_hooks_and_matrices(
             gradients (torch.Tensor): gradients of the node
             hook ([type]): hook
         """
-        grads = gradients.detach()
+        grads = gradients.detach().cpu()
         try:
             if grads.ndim == 3:
                 grads = grads.unsqueeze(2)
@@ -212,7 +213,7 @@ def get_scores_eap_ig(
     quiet=False,
 ):
     scores = torch.zeros(
-        (graph.n_forward, graph.n_backward), device="cuda", dtype=model.cfg.dtype
+        (graph.n_forward, graph.n_backward), device="cpu", dtype=model.cfg.dtype
     )
 
     total_items = 0
@@ -269,7 +270,7 @@ def get_scores_eap_ig(
                 clean_tokens = clean_tokens.to(model.cfg.device)
                 logits = model(clean_tokens, attention_mask=attention_mask)
                 metric_value = metric(logits, clean_logits, input_lengths, label)
-                metric_value.backward()
+                metric_value.backward(retain_graph=False)
     scores /= total_items
     scores /= total_steps
 
@@ -556,7 +557,7 @@ def attribute(
     elif aggregation == "l2":
         scores = torch.linalg.vector_norm(scores, ord=2, dim=-1)
 
-    scores = scores.cpu().numpy()
+    scores = scores.float().cpu().numpy()
 
     print(scores.shape)
     print(len(graph.edges.values()))

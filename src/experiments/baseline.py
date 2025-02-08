@@ -63,12 +63,8 @@ if __name__ == "__main__":
     model = HookedTransformer.from_pretrained(opts.model_name, n_devices=opts.ndevices)
     loader = dataset.to_dataloader(model, opts.batch_size)
 
-<<<<<<< Updated upstream
     if not opts.generate and hasattr(dataset, "choices") and opts.format != "chain-of-thought":
         print("evaluating multiple choice score")
-=======
-    if model.choices and opts.format != "chain-of-thought":
->>>>>>> Stashed changes
         inputs, out_texts, labels = eval_choice(model, loader, dataset.choices)
     else:
         print(f"generating with max {opts.max_new_tokens} tokens")

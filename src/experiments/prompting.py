@@ -18,7 +18,9 @@ from .utils import (
 )
 from cdatasets import PromptDataset
 
+import torch
 import torch.nn.functional as F
+from scalene import scalene_profiler
 from transformer_lens import HookedTransformer
 
 
@@ -29,7 +31,7 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, help="batch size", default=32)
     parser.add_argument("--ndevices", type=int, help="number of devices", default=1)
     parser.add_argument("--seed", type=int, help="random seed", default=42)
-    parser.add_argumnet("--n", type=int, help="number of prompts to patch", default=1000)
+    parser.add_argument("--n", type=int, help="number of prompts to patch", default=1000)
     parser.add_argument(
         "--response_name",
         type=str,
@@ -54,19 +56,21 @@ if __name__ == "__main__":
     opts = parse_args()
     seed_everything(opts.seed)
 
-    model = HookedTransformer.from_pretrained(opts.model_name, n_devices=opts.ndevices)
+    model = HookedTransformer.from_pretrained(opts.model_name, n_devices=opts.ndevices, dtype=torch.bfloat16)
 
     dataset = PromptDataset(opts.response_name, opts.n)
+    dataset.get_questions()
+    dataset.format_questions()
     dataloader = dataset.to_dataloader(model, opts.batch_size)
 
     model.cfg.use_split_qkv_input = True
     model.cfg.use_attn_result = True
     model.cfg.use_hook_mlp_in = True
 
-    metric = partial(kl_all_pos, model=model)
+    metric = partial(kl_all_pos, model)
 
     g = Graph.from_model(model)
-    attribute(model, g, model, metric, method="EAP-IG", ig_steps=opts.ig_steps)
+    attribute(model, g, dataloader, metric, method="EAP-IG", ig_steps=opts.ig_steps)
     g.apply_topn(200, absolute=False)
     g.to_json(f"{opts.ofname}.json")
     g.prune_dead_nodes()
