@@ -26,9 +26,10 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_name", type=str, help="model")
     parser.add_argument("ofname", type=str, help="output filename")
-    parser.add_argument("--batch_size", type=int, help="batch size", default=32)
+    parser.add_argument("--batch_size", type=int, help="batch size", default=8)
     parser.add_argument("--ndevices", type=int, help="number of devices", default=1)
     parser.add_argument("--seed", type=int, help="random seed", default=42)
+    parser.add_argument("--generate", action="store_true", default=False)
     parser.add_argument("--max_new_tokens", type=int, help="max new tokens", default=15)
     parser.add_argument(
         "--dataset",
@@ -62,9 +63,11 @@ if __name__ == "__main__":
     model = HookedTransformer.from_pretrained(opts.model_name, n_devices=opts.ndevices)
     loader = dataset.to_dataloader(model, opts.batch_size)
 
-    if model.choices:
+    if not opts.generate and hasattr(dataset, "choices") and opts.format != "chain-of-thought":
+        print("evaluating multiple choice score")
         inputs, out_texts, labels = eval_choice(model, loader, dataset.choices)
     else:
+        print(f"generating with max {opts.max_new_tokens} tokens")
         inputs, out_texts, labels = eval_pass(model, loader, opts.max_new_tokens)
     d = {
         "input": inputs,

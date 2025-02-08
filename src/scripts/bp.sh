@@ -27,21 +27,21 @@ export N=100
 
 # no parentheses
 for seed in {1..9}; do
-    python3 -m experiments.circuit_discovery $MODEL "$ROOT/$MODEL-only-not-np-$seed" --dataset bool --format "few-shot" \
-    --data_params expression_lengths=7 allow_parentheses=False variable_length=True binary_ops='tuple()' \
-    n=$N --format_params shots=3 --batch_size $BATCH_SIZE --seed $seed
+    python3 -m experiments.circuit_discovery $MODEL "$ROOT/$MODEL-and-not-np-$seed" --dataset bool --format "few-shot" \
+    --data_params expression_lengths=7 allow_parentheses=False variable_length=True binary_ops='("and",)' \
+    allow_parentheses=False n=$N --format_params shots=3 --batch_size $BATCH_SIZE --seed $seed
 done
 
-# for seed in {1..9}; do
-#     python3 -m experiments.circuit_discovery $MODEL "$ROOT/$MODEL-and-not-np-$seed" --dataset bool --format "few-shot" \
-#     --data_params expression_lengths=7 allow_parentheses=False variable_length=True binary_ops='("and",)' \
-#     n=$N --format_params shots=3 --batch_size $BATCH_SIZE --seed $seed
-# done
+for seed in {1..9}; do
+    python3 -m experiments.circuit_discovery $MODEL "$ROOT/$MODEL-all-np-$seed" --dataset bool --format "few-shot" \
+    --data_params expression_lengths=7 allow_parentheses=False variable_length=True binary_ops='("and", "or")' \
+    allow_parentheses=False n=$N --format_params shots=3 --batch_size $BATCH_SIZE --seed $seed
+done
 
-# for seed in {1..9}; do
-#     python3 -m experiments.circuit_discovery $MODEL "$ROOT/$MODEL-all-np-$seed" --dataset bool --format "few-shot" \
-#     --data_params expression_lengths=7 allow_parentheses=False variable_length=True binary_ops='("and", "or")' \
-#     n=$N --format_params shots=3 --batch_size $BATCH_SIZE --seed $seed
-# done
+for seed in {1..9}; do
+    python3 -m experiments.circuit_discovery $MODEL "$ROOT/$MODEL-only-not-np-$seed" --dataset bool --format "few-shot" \
+    --data_params expression_lengths=7 allow_parentheses=False variable_length=True binary_ops='tuple()' \
+    allow_parenthese=False n=$N --format_params shots=3 --batch_size $BATCH_SIZE --seed $seed
+done
 
 

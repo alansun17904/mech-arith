@@ -163,7 +163,7 @@ class BooleanDataset(BaseDataset):
         else:
             expressions = list(
                 self._yield_expression(
-                    self.expression_lengths, depth=self.parenthetical_depth
+                    self.expression_lengths, depth=self.parenthetical_depth if self.allow_parentheses else 0
                 )
             )
 

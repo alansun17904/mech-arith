@@ -1,23 +1,23 @@
 #!/bin/bash
 
-export MODEL="meta-llama/Llama-3.1-8B"
-export MNAME="llama-8b"
+export MODEL="gemma-2-9b"
+export MNAME="gemma-9b"
 export ROOT="experiments/data/baselines-cot"
 
 mkdir -p $ROOT
 
 # sports understanding
-# python3 -m experiments.baseline $MODEL "$ROOT/$MNAME-sports-fs" --dataset sports --format "few-shot" \
-#     --data_params n=1000 --format_params shots=3
+python3 -m experiments.baseline $MODEL "$ROOT/$MNAME-sports-fs" --dataset sports --format "few-shot" \
+    --data_params n=1000 --format_params shots=3
 
-# python3 -m experiments.baseline $MODEL "$ROOT/$MNAME-sports-fsm" --dataset sports --format "few-shot" \
-#     --data_params n=1000 --format_params shots=5
+python3 -m experiments.baseline $MODEL "$ROOT/$MNAME-sports-fsm" --dataset sports --format "few-shot" \
+    --data_params n=1000 --format_params shots=5
 
-# python3 -m experiments.baseline $MODEL "$ROOT/$MNAME-sports-cot" --dataset sports --format "chain-of-thought" \
-#     --data_params n=1000 --max_new_tokens 200
+python3 -m experiments.baseline $MODEL "$ROOT/$MNAME-sports-cot" --dataset sports --format "chain-of-thought" \
+    --data_params n=1000 --max_new_tokens 200
 
-# python3 -m experiments.baseline $MODEL "$ROOT/$MNAME-sports-zero" --dataset sports --format "few-shot" \
-#     --data_params n=1000 --format_params shots=1
+python3 -m experiments.baseline $MODEL "$ROOT/$MNAME-sports-zero" --dataset sports --format "few-shot" \
+    --data_params n=1000 --format_params shots=1
 
 # date understanding
 python3 -m experiments.baseline $MODEL "$ROOT/$MNAME-date-fsm" --dataset date --format "few-shot" \

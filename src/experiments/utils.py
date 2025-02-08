@@ -71,10 +71,11 @@ def eval_choice(model, dataloader, choices):
         outputs = model(tokens)
         logits = outputs[:,-1, choice_logit_idxs]
         probs = F.softmax(logits, dim=-1)
-        answers = [idx2choice[i] for i in probs.argmax(dim=-1)]
+        answers = [idx2choice[i.item()] for i in probs.argmax(dim=-1)]
         out_texts.extend(answers)
         labels.extend(label)
         inputs.extend(model.to_string(tokens))
+    return inputs, out_texts, labels
 
 
 def kl_metric(model, logits, clean_logits, input_length, labels):
