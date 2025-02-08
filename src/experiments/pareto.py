@@ -10,9 +10,11 @@ from .utils import (
     get_metric,
     get_extraction,
     extraction_schema,
+    eval_pass,
 )
 
 import numpy as np
+import torch.nn.functional as F
 from transformer_lens import HookedTransformer
 
 

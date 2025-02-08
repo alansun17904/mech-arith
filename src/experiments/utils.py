@@ -8,6 +8,8 @@ from functools import wraps
 from cdatasets import DatasetBuilder, PromptFormatter
 
 import torch.nn.functional as F
+from transformer_lens import HookedTransformer
+from transformers import AutoModelForCausalLM
 
 
 def seed_everything(seed: int = 42):
@@ -113,6 +115,16 @@ def perplexity(model, logits, clean_logits, input_length, labels):
     return nll.mean()
 
 
+def kl_all_pos(model, logits, clean_logits, input_length, labels):
+    clean_probs = F.softmax(clean_logits, dim=-1)
+
+    log_clean = F.log_softmax(clean_logits, dim=-1)
+    log_logits = F.log_softmax(logits, dim=-1)
+
+    kl_div = torch.sum(clean_probs * (log_clean - log_logits), dim=-1)
+    return kl_div.mean()
+
+
 def extraction_schema(extract_fn, model, **kwargs):
     def decorator(metric_fn):
         @wraps(metric_fn)
@@ -170,3 +182,90 @@ def get_extraction(extraction_id):
         return extract_none
     else:
         raise ValueError(f"Invalid extraction id: {extraction_id}")
+
+
+def load_model(
+        base_model: str = "pythia-160m", 
+        variant: str = None, 
+        checkpoint: int = 143000, 
+        cache: str = "model_cache", 
+        device: torch.device = torch.device("cuda"),
+        large_model: bool = False
+    ) -> HookedTransformer:
+    """
+    Load a transformer model from a pretrained base model or variant.
+
+    Args:
+        BASE_MODEL (str): The name of the base model.
+        VARIANT (str): The name of the model variant (if applicable).
+        CHECKPOINT (int): The checkpoint value for the model.
+        CACHE (str): The directory to cache the model.
+        device (torch.device): The device to load the model onto.
+
+    Returns:
+        HookedTransformer: The loaded transformer model.
+    """
+    if not variant:
+
+        if large_model:
+            model_type = torch.bfloat16
+        else:
+            model_type = None
+
+        model = HookedTransformer.from_pretrained(
+            base_model,
+            checkpoint_value=checkpoint,
+            center_unembed=True,
+            center_writing_weights=True,
+            fold_ln=True,
+            device=device,
+            #refactor_factored_attn_matrices=False,
+            dtype=model_type,
+            **{"cache_dir": cache},
+        )
+    elif not variant and large_model:
+        if large_model:
+            model_type = torch.bfloat16
+        else:
+            model_type = None
+        revision = f"step{checkpoint}"
+        source_model = AutoModelForCausalLM.from_pretrained(
+           f"EleutherAI/{base_model}", revision=revision, cache_dir=cache
+        ).to(model_type).to("cpu")
+        print(f"Loaded model {variant} at {revision}; now loading into HookedTransformer")
+        model = HookedTransformer.from_pretrained(
+            base_model,
+            hf_model=source_model,
+            center_unembed=True,
+            center_writing_weights=True,
+            fold_ln=True,
+            device=device,
+            dtype=model_type,
+            **{"cache_dir": cache},
+        )
+    else:
+        if large_model:
+            model_type = torch.bfloat16
+        else:
+            model_type = None
+
+        revision = f"step{checkpoint}"
+        source_model = AutoModelForCausalLM.from_pretrained(
+           variant, revision=revision, cache_dir=cache
+        ).to("cpu") #.to(torch.bfloat16)
+        print(f"Loaded model {variant} at {revision}; now loading into HookedTransformer")
+        model = HookedTransformer.from_pretrained(
+            base_model,
+            hf_model=source_model,
+            center_unembed=True,
+            center_writing_weights=True,
+            fold_ln=True,
+            device=device,
+            dtype=model_type,
+            **{"cache_dir": cache},
+        )
+
+    model.cfg.use_split_qkv_input = True
+    model.cfg.use_attn_result = True
+    model.cfg.use_hook_mlp_in = True
+    return model
