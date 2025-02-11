@@ -195,6 +195,7 @@ def evaluate_graph_generate(
     prune: bool = True,
     max_new_tokens=15,
     quiet=True,
+    in_graph_matrix=None
 ):
     """
     Evaluate a circuit (i.e. a graph where only some nodes are false, probably created by calling graph.apply_threshold). You probably want to prune beforehand to make sure your circuit is valid.
@@ -209,26 +210,7 @@ def evaluate_graph_generate(
     Returns:
         List[Tensor], the results of the evaluation.
     """
-    if prune:
-        graph.prune_dead_nodes(prune_childless=True, prune_parentless=True)
 
-    empty_circuit = not graph.nodes["logits"].in_graph
-    if empty_circuit:
-        print("Warning: empty circuit")
-
-    # we construct the in_graph matrix, which is a binary matrix indicating which edges are in the circuit
-    # we invert it so that we add in the corrupting activation differences for edges not in the circuit
-    in_graph_matrix = torch.zeros(
-        (graph.n_forward, graph.n_backward), device="cuda", dtype=model.cfg.dtype
-    )
-    for edge in graph.edges.values():
-        if edge.in_graph:
-            in_graph_matrix[
-                graph.forward_index(edge.parent, attn_slice=False),
-                graph.backward_index(edge.child, qkv=edge.qkv, attn_slice=False),
-            ] = 1
-
-    in_graph_matrix = 1 - in_graph_matrix
 
     # For each node in the graph, construct its input (in the case of attention heads, multiple inputs) by corrupting the incoming edges that are not in the circuit.
     # We assume that the corrupted cache is filled with corresponding corrupted activations, and that the mixed cache contains the computed activations from preceding nodes in this forward pass.
@@ -314,6 +296,8 @@ def evaluate_graph_generate(
     clean_tokens, attention_mask, input_lengths, n_pos = clean
     corrupted_tokens, _, _, _ = corrupted
 
+    empty_circuit = not graph.nodes["logits"].in_graph
+
     (
         fwd_hooks_corrupted,
         fwd_hooks_clean,
@@ -327,8 +311,8 @@ def evaluate_graph_generate(
     )
 
     with torch.inference_mode():
-        for i in range(max_new_tokens):
-            with model.hooks(fwd_hooks_corrupted):
+        with model.hooks(fwd_hooks_corrupted):
+            for i in range(max_new_tokens):
                 corrupted_logits = model(
                     corrupted_tokens, attention_mask=attention_mask
                 )
@@ -340,17 +324,17 @@ def evaluate_graph_generate(
                     logits = model(clean_tokens, attention_mask=attention_mask)
             # get the top token that corresponds to each example
 
-        final_logits = logits[:, -1, :]
-        sampled_tokens = torch.argmax(final_logits, dim=-1)
+            final_logits = logits[:, -1, :]
+            sampled_tokens = torch.argmax(final_logits, dim=-1)
 
-        # add the new tokens to the corrupted and clean tokens
-        corrupted_tokens = torch.cat(
-            [corrupted_tokens, sampled_tokens.unsqueeze(1).to(corrupted_tokens.device)],
-            dim=1,
-        )
-        clean_tokens = torch.cat(
-            [clean_tokens, sampled_tokens.unsqueeze(1).to(clean_tokens.device)], dim=1
-        )
+            # add the new tokens to the corrupted and clean tokens
+            corrupted_tokens = torch.cat(
+                [corrupted_tokens, sampled_tokens.unsqueeze(1).to(corrupted_tokens.device)],
+                dim=1,
+            )
+            clean_tokens = torch.cat(
+                [clean_tokens, sampled_tokens.unsqueeze(1).to(clean_tokens.device)], dim=1
+            )
 
     return clean_tokens
 

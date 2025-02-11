@@ -16,6 +16,20 @@ import torch.nn.functional as F
 from transformer_lens import HookedTransformer
 
 
+from typing import Callable, List, Union
+from functools import partial
+
+import torch
+from torch import Tensor
+from torch.utils.data import DataLoader
+from transformer_lens import HookedTransformer
+from tqdm import tqdm
+from einops import einsum
+
+from .graph import Graph, InputNode, LogitNode, AttentionNode, MLPNode, Node, Edge
+from .attribute import make_hooks_and_matrices, tokenize_plus
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("model_name", type=str, help="model")
@@ -50,9 +64,30 @@ def parse_args():
 def eval_pass(model, dataloader, graph, max_new_tokens=15):
     model.eval()
     inputs, out_texts, labels = [], [], []
+
+    graph.prune_dead_nodes(prune_childless=True, prune_parentless=True)
+
+    empty_circuit = not graph.nodes["logits"].in_graph
+    if empty_circuit:
+        print("Warning: empty circuit")
+
+    # we construct the in_graph matrix, which is a binary matrix indicating which edges are in the circuit
+    # we invert it so that we add in the corrupting activation differences for edges not in the circuit
+    in_graph_matrix = torch.zeros(
+        (graph.n_forward, graph.n_backward), device="cuda", dtype=model.cfg.dtype
+    )
+    for edge in graph.edges.values():
+        if edge.in_graph:
+            in_graph_matrix[
+                graph.forward_index(edge.parent, attn_slice=False),
+                graph.backward_index(edge.child, qkv=edge.qkv, attn_slice=False),
+            ] = 1
+
+    in_graph_matrix = 1 - in_graph_matrix
+
     for clean, corrupted, label in tqdm.tqdm(dataloader):
         outputs = evaluate_graph_generate(
-            model, graph, clean, corrupted, max_new_tokens=max_new_tokens
+            model, graph, clean, corrupted, max_new_tokens=max_new_tokens, in_graph_matrix=in_graph_matrix
         )
         inputs.extend(model.to_string(clean[0]))
         out_texts.extend(model.to_string(outputs))
