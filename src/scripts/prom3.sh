@@ -1,10 +1,10 @@
 #!/bin/bash
 
-export MODEL="meta-llama/Llama-3.1-8B"
-export MNAME="llama-8b"
+export MODEL="gemma-2-9b"
+export MNAME="gemma-9b"
 export PROMPT_ROOT="experiments/data/baselines-cot"
 export ROOT="experiments/data/$MNAME-prompting"
-export TASK="csense"
+export TASK="sports"
 export BATCH_SIZE=1
 export DEVICES=2
 export N=20

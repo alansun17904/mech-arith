@@ -271,6 +271,10 @@ def get_scores_eap_ig(
                 logits = model(clean_tokens, attention_mask=attention_mask)
                 metric_value = metric(logits, clean_logits, input_lengths, label)
                 metric_value.backward(retain_graph=False)
+                # Free memory immediately after backward pass
+        del metric_value, logits, clean_tokens
+        torch.cuda.empty_cache()
+
     scores /= total_items
     scores /= total_steps
 

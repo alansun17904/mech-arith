@@ -65,7 +65,7 @@ def evaluate_graph(
                     activation_differences[:, :, : len(in_graph_vector)].to(
                         activations.device
                     ),
-                    in_graph_vector,
+                    in_graph_vector.to(activations.device),
                     "batch pos previous hidden, previous head -> batch pos head hidden",
                 )
             else:
@@ -73,7 +73,7 @@ def evaluate_graph(
                     activation_differences[:, :, : len(in_graph_vector)].to(
                         activations.device
                     ),
-                    in_graph_vector,
+                    in_graph_vector.to(activations.device),
                     "batch pos previous hidden, previous -> batch pos hidden",
                 )
             activations += update.to(activations.device)
@@ -296,16 +296,16 @@ def evaluate_graph_generate(
             if attn:
                 update = einsum(
                     activation_differences[:, :, : len(in_graph_vector)],
-                    in_graph_vector,
+                    in_graph_vector.to(activation_differences.device),
                     "batch pos previous hidden, previous head -> batch pos head hidden",
                 )
             else:
                 update = einsum(
                     activation_differences[:, :, : len(in_graph_vector)],
-                    in_graph_vector,
+                    in_graph_vector.to(activation_differences.device),
                     "batch pos previous hidden, previous -> batch pos hidden",
                 )
-            activations += update
+            activations += update.to(activations.device)
             return activations
 
         return input_construction_hook
