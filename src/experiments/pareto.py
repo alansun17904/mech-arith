@@ -82,7 +82,7 @@ if __name__ == "__main__":
         if empty and prct != 1:
             continue
 
-        result = evaluate_graph(model,g,dataloader, metric)
+        result = evaluate_graph(model, g, dataloader, metric)
         perf.append(result.mean().item())
         print("n_comps:", remained_components, "result", result.mean().item())
 

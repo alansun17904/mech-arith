@@ -51,7 +51,9 @@ def eval_pass(model, dataloader, graph, max_new_tokens=15):
     model.eval()
     inputs, out_texts, labels = [], [], []
     for clean, corrupted, label in tqdm.tqdm(dataloader):
-        outputs = evaluate_graph_generate(model, graph, clean, corrupted, max_new_tokens=max_new_tokens)
+        outputs = evaluate_graph_generate(
+            model, graph, clean, corrupted, max_new_tokens=max_new_tokens
+        )
         inputs.extend(model.to_string(clean[0]))
         out_texts.extend(model.to_string(outputs))
         labels.extend(label)
@@ -89,11 +91,7 @@ if __name__ == "__main__":
             continue
 
         ins, outs, labels = eval_pass(model, dataloader, g)
-        out_texts.append({
-            "inputs": ins,
-            "outputs": outs,
-            "labels": labels
-        })
+        out_texts.append({"inputs": ins, "outputs": outs, "labels": labels})
         print(out_texts)
         print("n_comps:", remained_components)
 

@@ -71,7 +71,7 @@ def eval_choice(model, dataloader, choices):
     for clean_prompt, _, label in tqdm.tqdm(dataloader):
         tokens, _, _, _ = clean_prompt
         outputs = model(tokens)
-        logits = outputs[:,-1, choice_logit_idxs]
+        logits = outputs[:, -1, choice_logit_idxs]
         probs = F.softmax(logits, dim=-1)
         answers = [idx2choice[i.item()] for i in probs.argmax(dim=-1)]
         out_texts.extend(answers)
@@ -185,13 +185,13 @@ def get_extraction(extraction_id):
 
 
 def load_model(
-        base_model: str = "pythia-160m", 
-        variant: str = None, 
-        checkpoint: int = 143000, 
-        cache: str = "model_cache", 
-        device: torch.device = torch.device("cuda"),
-        large_model: bool = False
-    ) -> HookedTransformer:
+    base_model: str = "pythia-160m",
+    variant: str = None,
+    checkpoint: int = 143000,
+    cache: str = "model_cache",
+    device: torch.device = torch.device("cuda"),
+    large_model: bool = False,
+) -> HookedTransformer:
     """
     Load a transformer model from a pretrained base model or variant.
 
@@ -219,7 +219,7 @@ def load_model(
             center_writing_weights=True,
             fold_ln=True,
             device=device,
-            #refactor_factored_attn_matrices=False,
+            # refactor_factored_attn_matrices=False,
             dtype=model_type,
             **{"cache_dir": cache},
         )
@@ -229,10 +229,16 @@ def load_model(
         else:
             model_type = None
         revision = f"step{checkpoint}"
-        source_model = AutoModelForCausalLM.from_pretrained(
-           f"EleutherAI/{base_model}", revision=revision, cache_dir=cache
-        ).to(model_type).to("cpu")
-        print(f"Loaded model {variant} at {revision}; now loading into HookedTransformer")
+        source_model = (
+            AutoModelForCausalLM.from_pretrained(
+                f"EleutherAI/{base_model}", revision=revision, cache_dir=cache
+            )
+            .to(model_type)
+            .to("cpu")
+        )
+        print(
+            f"Loaded model {variant} at {revision}; now loading into HookedTransformer"
+        )
         model = HookedTransformer.from_pretrained(
             base_model,
             hf_model=source_model,
@@ -251,9 +257,13 @@ def load_model(
 
         revision = f"step{checkpoint}"
         source_model = AutoModelForCausalLM.from_pretrained(
-           variant, revision=revision, cache_dir=cache
-        ).to("cpu") #.to(torch.bfloat16)
-        print(f"Loaded model {variant} at {revision}; now loading into HookedTransformer")
+            variant, revision=revision, cache_dir=cache
+        ).to(
+            "cpu"
+        )  # .to(torch.bfloat16)
+        print(
+            f"Loaded model {variant} at {revision}; now loading into HookedTransformer"
+        )
         model = HookedTransformer.from_pretrained(
             base_model,
             hf_model=source_model,

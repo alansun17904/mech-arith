@@ -38,7 +38,7 @@ def make_hooks_and_matrices(
         (batch_size, n_pos, graph.n_forward, model.cfg.d_model),
         dtype=model.cfg.dtype,
         device="cpu",
-        pin_memory=True
+        pin_memory=True,
     )
 
     processed_attn_layers = set()

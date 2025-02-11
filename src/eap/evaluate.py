@@ -326,7 +326,6 @@ def evaluate_graph_generate(
         activation_difference, in_graph_matrix
     )
 
-
     with torch.inference_mode():
         for i in range(max_new_tokens):
             with model.hooks(fwd_hooks_corrupted):
@@ -345,8 +344,13 @@ def evaluate_graph_generate(
         sampled_tokens = torch.argmax(final_logits, dim=-1)
 
         # add the new tokens to the corrupted and clean tokens
-        corrupted_tokens = torch.cat([corrupted_tokens, sampled_tokens.unsqueeze(1).to(corrupted_tokens.device)], dim=1)
-        clean_tokens = torch.cat([clean_tokens, sampled_tokens.unsqueeze(1).to(clean_tokens.device)], dim=1)
+        corrupted_tokens = torch.cat(
+            [corrupted_tokens, sampled_tokens.unsqueeze(1).to(corrupted_tokens.device)],
+            dim=1,
+        )
+        clean_tokens = torch.cat(
+            [clean_tokens, sampled_tokens.unsqueeze(1).to(clean_tokens.device)], dim=1
+        )
 
     return clean_tokens
 

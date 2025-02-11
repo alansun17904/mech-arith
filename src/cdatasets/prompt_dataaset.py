@@ -31,7 +31,9 @@ class PromptDataset(BaseDataset):
     def get_questions(self):
         task = pickle.load(open(self.fname, "rb"))
         for i in range(len(task["output"])):
-            self._examples.append({"input": task["input"][i], "output": task["output"][i]})
+            self._examples.append(
+                {"input": task["input"][i], "output": task["output"][i]}
+            )
 
         random.shuffle(self._examples)
 
@@ -46,7 +48,11 @@ class PromptDataset(BaseDataset):
         return len(self._pclean_examples)
 
     def __getitem__(self, idx):
-        return self._pclean_examples[idx], self._pcorrupted_examples[idx], self._plabels[idx]
+        return (
+            self._pclean_examples[idx],
+            self._pcorrupted_examples[idx],
+            self._plabels[idx],
+        )
 
     @property
     def partition_index(self):
@@ -59,16 +65,21 @@ class PromptDataset(BaseDataset):
             val = self.parts - 1
         self._partition_index = val
         self._pclean_examples = self._clean_examples[
-            self._partition_index * self.part_size:(self._partition_index + 1) * self.part_size
+            self._partition_index
+            * self.part_size : (self._partition_index + 1)
+            * self.part_size
         ]
         self._pcorrupted_examples = self._corrupted_examples[
-            self._partition_index * self.part_size:(self._partition_index + 1) * self.part_size
+            self._partition_index
+            * self.part_size : (self._partition_index + 1)
+            * self.part_size
         ]
         self._plabels = self._labels[
-            self._partition_index * self.part_size:(self._partition_index + 1) * self.part_size
+            self._partition_index
+            * self.part_size : (self._partition_index + 1)
+            * self.part_size
         ]
 
     def to_dataloader(self, model, batch_size: int, collate_fn=None):
         collate_fn = partial(generic_collate, model)
         return DataLoader(self, batch_size=batch_size, collate_fn=collate_fn)
-

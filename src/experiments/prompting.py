@@ -14,7 +14,7 @@ from .utils import (
     get_metric,
     get_extraction,
     extraction_schema,
-    kl_all_pos
+    kl_all_pos,
 )
 from cdatasets import PromptDataset
 
@@ -48,7 +48,9 @@ if __name__ == "__main__":
     opts = parse_args()
     seed_everything(opts.seed)
 
-    model = HookedTransformer.from_pretrained(opts.model_name, n_devices=opts.ndevices, dtype=torch.bfloat16)
+    model = HookedTransformer.from_pretrained(
+        opts.model_name, n_devices=opts.ndevices, dtype=torch.bfloat16
+    )
 
     dataset = PromptDataset(opts.response_name, opts.n_parts, opts.n)
     dataset.get_questions()

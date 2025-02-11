@@ -15,7 +15,7 @@ from .utils import (
     get_extraction,
     extraction_schema,
     eval_pass,
-    eval_choice
+    eval_choice,
 )
 
 import torch.nn.functional as F
@@ -63,7 +63,11 @@ if __name__ == "__main__":
     model = HookedTransformer.from_pretrained(opts.model_name, n_devices=opts.ndevices)
     loader = dataset.to_dataloader(model, opts.batch_size)
 
-    if not opts.generate and hasattr(dataset, "choices") and opts.format != "chain-of-thought":
+    if (
+        not opts.generate
+        and hasattr(dataset, "choices")
+        and opts.format != "chain-of-thought"
+    ):
         print("evaluating multiple choice score")
         inputs, out_texts, labels = eval_choice(model, loader, dataset.choices)
     else:
