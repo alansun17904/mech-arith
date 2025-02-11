@@ -187,71 +187,14 @@ def evaluate_graph(
     return results
 
 
-def evaluate_baseline(
-    model: HookedTransformer,
-    dataloader: DataLoader,
-    metrics: Union[List[Callable[[Tensor], Tensor]], Callable[[Tensor], Tensor]],
-    run_corrupted=False,
-    quiet=False,
-):
-    """
-    Evaluate a model with a dataloader and a list of metrics, using only the clean examples, and without considering which graph edges are in/out of the circuit
-    Args:
-        model: HookedTransformer, the model to evaluate.
-        dataloader: DataLoader, the dataloader to use for evaluation.
-        metrics: Union[List[Callable[[Tensor], Tensor]],Callable[[Tensor], Tensor]], the metric or metrics to evaluate.
-        run_corrupted: bool, if True, run the model on corrupted inputs.
-        quiet: bool, if True, do not display progress bars.
-    Returns:
-        List[Tensor], the results of the evaluation.
-    """
-    metrics_list = True
-    if not isinstance(metrics, list):
-        metrics = [metrics]
-        metrics_list = False
-
-    results = [[] for _ in metrics]
-    dataloader = dataloader if quiet else tqdm(dataloader)
-    for clean, corrupted, label in tqdm(dataloader):
-        clean_tokens, attention_mask, input_lengths, _ = clean
-        corrupted_tokens, _, _, _ = corrupted
-
-        with torch.inference_mode():
-            corrupted_logits = model(corrupted_tokens, attention_mask=attention_mask)
-            logits = model(clean_tokens, attention_mask=attention_mask)
-
-        for i, metric in enumerate(metrics):
-            if run_corrupted:
-                r = metric(
-                    corrupted_logits.to(logits.device),
-                    logits,
-                    input_lengths.to(logits.device),
-                    label,
-                ).cpu()
-            else:
-                r = metric(
-                    logits,
-                    corrupted_logits.to(logits.device),
-                    input_lengths.to(logits.device),
-                    label,
-                ).cpu()
-            if len(r.size()) == 0:
-                r = r.unsqueeze(0)
-            results[i].append(r)
-
-    results = [torch.cat(rs) for rs in results]
-    if not metrics_list:
-        results = results[0]
-    return results
-
-
 def evaluate_graph_generate(
     model: HookedTransformer,
     graph: Graph,
-    dataloader: DataLoader,
-    metrics: Union[List[Callable[[Tensor], Tensor]], Callable[[Tensor], Tensor]],
+    clean,
+    corrupted,
     prune: bool = True,
-    quiet=False,
+    max_new_tokens=15,
+    quiet=True,
 ):
     """
     Evaluate a circuit (i.e. a graph where only some nodes are false, probably created by calling graph.apply_threshold). You probably want to prune beforehand to make sure your circuit is valid.
@@ -295,14 +238,18 @@ def evaluate_graph_generate(
         def input_construction_hook(activations, hook):
             if attn:
                 update = einsum(
-                    activation_differences[:, :, : len(in_graph_vector)],
-                    in_graph_vector.to(activation_differences.device),
+                    activation_differences[:, :, : len(in_graph_vector)].to(
+                        activations.device
+                    ),
+                    in_graph_vector.to(activations.device),
                     "batch pos previous hidden, previous head -> batch pos head hidden",
                 )
             else:
                 update = einsum(
-                    activation_differences[:, :, : len(in_graph_vector)],
-                    in_graph_vector.to(activation_differences.device),
+                    activation_differences[:, :, : len(in_graph_vector)].to(
+                        activations.device
+                    ),
+                    in_graph_vector.to(activations.device),
                     "batch pos previous hidden, previous -> batch pos hidden",
                 )
             activations += update.to(activations.device)
@@ -364,30 +311,24 @@ def evaluate_graph_generate(
             )
         return input_construction_hooks
 
-    # and here we actually run / evaluate the model
-    metrics_list = True
-    if not isinstance(metrics, list):
-        metrics = [metrics]
-        metrics_list = False
-    results = [[] for _ in metrics]
+    clean_tokens, attention_mask, input_lengths, n_pos = clean
+    corrupted_tokens, _, _, _ = corrupted
 
-    dataloader = dataloader if quiet else tqdm(dataloader)
-    for clean, corrupted, label in dataloader:
-        clean_tokens, attention_mask, input_lengths, n_pos = clean
-        corrupted_tokens, _, _, _ = corrupted
+    (
+        fwd_hooks_corrupted,
+        fwd_hooks_clean,
+        _,
+    ), activation_difference = make_hooks_and_matrices(
+        model, graph, len(clean_tokens), n_pos, None
+    )
 
-        (
-            fwd_hooks_corrupted,
-            fwd_hooks_clean,
-            _,
-        ), activation_difference = make_hooks_and_matrices(
-            model, graph, len(clean_tokens), n_pos, None
-        )
+    input_construction_hooks = make_input_construction_hooks(
+        activation_difference, in_graph_matrix
+    )
 
-        input_construction_hooks = make_input_construction_hooks(
-            activation_difference, in_graph_matrix
-        )
-        with torch.inference_mode():
+
+    with torch.inference_mode():
+        for i in range(max_new_tokens):
             with model.hooks(fwd_hooks_corrupted):
                 corrupted_logits = model(
                     corrupted_tokens, attention_mask=attention_mask
@@ -398,14 +339,66 @@ def evaluate_graph_generate(
             else:
                 with model.hooks(fwd_hooks_clean + input_construction_hooks):
                     logits = model(clean_tokens, attention_mask=attention_mask)
+            # get the top token that corresponds to each example
+
+        final_logits = logits[:, -1, :]
+        sampled_tokens = torch.argmax(final_logits, dim=-1)
+
+        # add the new tokens to the corrupted and clean tokens 
+        corrupted_tokens = torch.cat([corrupted_tokens, sampled_tokens.unsqueeze(1)], dim=1)
+        clean_tokens = torch.cat([clean_tokens, sampled_tokens.unsqueeze(1)], dim=1)
+
+    return clean_tokens
+
+
+def evaluate_baseline(
+    model: HookedTransformer,
+    dataloader: DataLoader,
+    metrics: Union[List[Callable[[Tensor], Tensor]], Callable[[Tensor], Tensor]],
+    run_corrupted=False,
+    quiet=False,
+):
+    """
+    Evaluate a model with a dataloader and a list of metrics, using only the clean examples, and without considering which graph edges are in/out of the circuit
+    Args:
+        model: HookedTransformer, the model to evaluate.
+        dataloader: DataLoader, the dataloader to use for evaluation.
+        metrics: Union[List[Callable[[Tensor], Tensor]],Callable[[Tensor], Tensor]], the metric or metrics to evaluate.
+        run_corrupted: bool, if True, run the model on corrupted inputs.
+        quiet: bool, if True, do not display progress bars.
+    Returns:
+        List[Tensor], the results of the evaluation.
+    """
+    metrics_list = True
+    if not isinstance(metrics, list):
+        metrics = [metrics]
+        metrics_list = False
+
+    results = [[] for _ in metrics]
+    dataloader = dataloader if quiet else tqdm(dataloader)
+    for clean, corrupted, label in tqdm(dataloader):
+        clean_tokens, attention_mask, input_lengths, _ = clean
+        corrupted_tokens, _, _, _ = corrupted
+
+        with torch.inference_mode():
+            corrupted_logits = model(corrupted_tokens, attention_mask=attention_mask)
+            logits = model(clean_tokens, attention_mask=attention_mask)
 
         for i, metric in enumerate(metrics):
-            r = metric(
-                logits,
-                corrupted_logits.to(logits.device),
-                input_lengths.to(logits.device),
-                label.to(logits.device),
-            ).cpu()
+            if run_corrupted:
+                r = metric(
+                    corrupted_logits.to(logits.device),
+                    logits,
+                    input_lengths.to(logits.device),
+                    label,
+                ).cpu()
+            else:
+                r = metric(
+                    logits,
+                    corrupted_logits.to(logits.device),
+                    input_lengths.to(logits.device),
+                    label,
+                ).cpu()
             if len(r.size()) == 0:
                 r = r.unsqueeze(0)
             results[i].append(r)
@@ -414,3 +407,9 @@ def evaluate_graph_generate(
     if not metrics_list:
         results = results[0]
     return results
+
+
+def evaluate_graph_generate(model: HookedTransformer, graph: Graph, dataloader: DataLoader, quiet=False, max_new_tokens=15):
+    iterat = range(max_new_tokens) if not quiet else tqdm(range(max_new_tokens))
+    for i in iterat:
+        new_tokens = evaluate_graph_no_metric(model, graph, dataloader, quiet=quiet)
