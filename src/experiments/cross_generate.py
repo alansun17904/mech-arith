@@ -21,8 +21,8 @@ def parse_args():
     parser.add_argument("model_name", type=str, help="model")
     parser.add_argument("ofname", type=str, help="output filename")
     parser.add_argument("graph_file", type=str, help="graph with scores after pruning")
-    parser.add_argument("--batch_size", type=int, help="batch size", default=32)
-    parser.add_argument("--ndevices", type=int, help="number of devices", default=1)
+    parser.add_argument("--batch_size", type=int, help="batch size", default=64)
+    parser.add_argument("--ndevices", type=int, help="number of devices", default=2)
     parser.add_argument("--seed", type=int, help="random seed", default=42)
     parser.add_argument(
         "--dataset",
@@ -51,10 +51,8 @@ def eval_pass(model, dataloader, graph, max_new_tokens=15):
     model.eval()
     inputs, out_texts, labels = [], [], []
     for clean, corrupted, label in tqdm.tqdm(dataloader):
-        clean_tokens, _, _, = clean
-        corrupted_tokens, _, _, = corrupted
-        outputs = evaluate_graph_generate(model, graph, clean_tokens, corrupted_tokens, max_new_tokens=max_new_tokens)
-        inputs.extend(model.to_string(clean_tokens))
+        outputs = evaluate_graph_generate(model, graph, clean, corrupted, max_new_tokens=max_new_tokens)
+        inputs.extend(model.to_string(clean[0]))
         out_texts.extend(model.to_string(outputs))
         labels.extend(label)
     return inputs, out_texts, labels
@@ -96,6 +94,7 @@ if __name__ == "__main__":
             "outputs": outs,
             "labels": labels
         })
+        print(out_texts)
         print("n_comps:", remained_components)
 
     pareto = {"results": out_texts, "components": components}

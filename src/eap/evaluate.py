@@ -344,9 +344,9 @@ def evaluate_graph_generate(
         final_logits = logits[:, -1, :]
         sampled_tokens = torch.argmax(final_logits, dim=-1)
 
-        # add the new tokens to the corrupted and clean tokens 
-        corrupted_tokens = torch.cat([corrupted_tokens, sampled_tokens.unsqueeze(1)], dim=1)
-        clean_tokens = torch.cat([clean_tokens, sampled_tokens.unsqueeze(1)], dim=1)
+        # add the new tokens to the corrupted and clean tokens
+        corrupted_tokens = torch.cat([corrupted_tokens, sampled_tokens.unsqueeze(1).to(corrupted_tokens.device)], dim=1)
+        clean_tokens = torch.cat([clean_tokens, sampled_tokens.unsqueeze(1).to(clean_tokens.device)], dim=1)
 
     return clean_tokens
 
@@ -407,9 +407,3 @@ def evaluate_baseline(
     if not metrics_list:
         results = results[0]
     return results
-
-
-def evaluate_graph_generate(model: HookedTransformer, graph: Graph, dataloader: DataLoader, quiet=False, max_new_tokens=15):
-    iterat = range(max_new_tokens) if not quiet else tqdm(range(max_new_tokens))
-    for i in iterat:
-        new_tokens = evaluate_graph_no_metric(model, graph, dataloader, quiet=quiet)
