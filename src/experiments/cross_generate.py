@@ -23,11 +23,10 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
 from transformer_lens import HookedTransformer
-from tqdm import tqdm
 from einops import einsum
 
-from .graph import Graph, InputNode, LogitNode, AttentionNode, MLPNode, Node, Edge
-from .attribute import make_hooks_and_matrices, tokenize_plus
+from eap.graph import Graph, InputNode, LogitNode, AttentionNode, MLPNode, Node, Edge
+from eap.attribute import make_hooks_and_matrices, tokenize_plus
 
 
 def parse_args():
@@ -126,8 +125,12 @@ if __name__ == "__main__":
             continue
 
         ins, outs, labels = eval_pass(model, dataloader, g)
-        out_texts.append({"inputs": ins, "outputs": outs, "labels": labels})
-        print(out_texts)
+        out_texts.append({
+            "inputs": ins,
+            "outputs": outs,
+            "labels": labels
+        })
+        print("Sample outputs:", outs[:5])
         print("n_comps:", remained_components)
 
     pareto = {"results": out_texts, "components": components}

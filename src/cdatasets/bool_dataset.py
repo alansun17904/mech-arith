@@ -33,7 +33,7 @@ class BooleanDataset(BaseDataset):
         binary_ops: tuple = ("or", "and"),
         unary_ops: tuple = ("not",),
         allow_parentheses: bool = True,
-        parenthetical_depth: int = 1,
+        parenthetical_depth: int = 3,
         variable_length: bool = False,
         n=1000,
     ):

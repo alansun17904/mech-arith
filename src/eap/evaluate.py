@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
 from transformer_lens import HookedTransformer
+from transformer_lens.utils import get_attention_mask
 from tqdm import tqdm
 from einops import einsum
 
@@ -311,30 +312,48 @@ def evaluate_graph_generate(
     )
 
     with torch.inference_mode():
-        with model.hooks(fwd_hooks_corrupted):
-            for i in range(max_new_tokens):
+        for i in range(max_new_tokens):
+
+
+            with model.hooks(fwd_hooks_corrupted):
                 corrupted_logits = model(
                     corrupted_tokens, attention_mask=attention_mask
                 )
 
-            if empty_circuit:
-                logits = corrupted_logits
-            else:
-                with model.hooks(fwd_hooks_clean + input_construction_hooks):
-                    logits = model(clean_tokens, attention_mask=attention_mask)
-            # get the top token that corresponds to each example
+                if empty_circuit:
+                    logits = corrupted_logits
+                else:
+                    with model.hooks(fwd_hooks_clean + input_construction_hooks):
+                        logits = model(clean_tokens, attention_mask=attention_mask)
+                # get the top token that corresponds to each example
 
-            final_logits = logits[:, -1, :]
-            sampled_tokens = torch.argmax(final_logits, dim=-1)
+                final_logits = logits[:, -1, :]
+                sampled_tokens = torch.argmax(final_logits, dim=-1)
 
-            # add the new tokens to the corrupted and clean tokens
-            corrupted_tokens = torch.cat(
-                [corrupted_tokens, sampled_tokens.unsqueeze(1).to(corrupted_tokens.device)],
-                dim=1,
+                # add the new tokens to the corrupted and clean tokens
+                corrupted_tokens = torch.cat(
+                    [corrupted_tokens, sampled_tokens.unsqueeze(1).to(corrupted_tokens.device)],
+                    dim=1,
+                )
+                clean_tokens = torch.cat(
+                    [clean_tokens, sampled_tokens.unsqueeze(1).to(clean_tokens.device)], dim=1
+                )
+                attention_mask = get_attention_mask(model.tokenizer, clean_tokens, True)
+
+            (
+                fwd_hooks_corrupted,
+                fwd_hooks_clean,
+                _,
+            ), activation_difference = make_hooks_and_matrices(
+                model, graph, len(clean_tokens), n_pos + i + 1, None
             )
-            clean_tokens = torch.cat(
-                [clean_tokens, sampled_tokens.unsqueeze(1).to(clean_tokens.device)], dim=1
+
+            input_construction_hooks = make_input_construction_hooks(
+                activation_difference, in_graph_matrix
             )
+
+
+
 
     return clean_tokens
 
