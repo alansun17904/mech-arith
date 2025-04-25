@@ -73,11 +73,17 @@ neural networks by uncovering their
 \textit{mechanisms}. A mechanism of a neural network with respect to some task
 is a minimal subgraph of its computational graph that wholly characterizes the
 network's behavior on this task~\citep{wang_interpretability_2022}. After exposing
-the driving mechanisms 
+the driving mechanisms and reverse-engineering its network into human-interpretable
+components, this facilitates the understanding and improvement of models.  The general
+convention has been to manually uncover the mechanisms of models. However, recent work~\citep{conmy_towards_2023}
+aims to automate this process to promote work on interpretability across the field. Others 
+have used concept bottlenecks~\citep{tan_interpreting_2023}, attention weight 
+visualization~\citep{galassi_attention_2020}, probing feature representations~\citep{lundberg_a_2017}, and 
+counterfactuals~\citep{wu_polyjuice_2021} to attempt to uncover LLMs' black-box nature. These techniques, 
+though, are all domain-dependent and thus, do not allow for general interpretability of LLMs.
 
-A brief introduction to the field
-and how our work provides rigorous guarantees for a lot of the work being
-done in MI.
+Our paper aims to create a generalizable metric that can be used to interpret and measure the performance 
+of models across various domains and models.
 
 \textbf{Graphical models.} Probably need to rethink the title here, we want
 to explain the relationship between directed acyclic graphs, causal graphs,
